@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/shared/header";
 import { BalanceCards } from "@/components/portfolio/balance-cards";
 import { CauseSelector } from "@/components/portfolio/cause-selector";
+import { SelectedNonprofits } from "@/components/portfolio/selected-nonprofits";
 import { EffectsBoard } from "@/components/portfolio/effects-board";
 import { ReceiptsTimeline } from "@/components/portfolio/receipts-timeline";
 import { EffectAOverlay } from "@/components/effects/effect-a-overlay";
@@ -56,6 +57,11 @@ export default function PortfolioDashboard() {
         {/* Cause Selection */}
         <section className="mb-8">
           <CauseSelector />
+        </section>
+
+        {/* Selected Nonprofits */}
+        <section className="mb-8">
+          <SelectedNonprofits />
         </section>
 
         {/* Effects Board */}
