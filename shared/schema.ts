@@ -18,6 +18,7 @@ export const portfolios = pgTable("portfolios", {
   debt: real("debt").notNull().default(0.00),
   healthFactor: real("health_factor"),
   selectedCause: text("selected_cause"),
+  selectedNonprofits: json("selected_nonprofits").$type<string[]>().default(sql`'[]'::json`),
   effectsCompleted: integer("effects_completed").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -36,6 +37,10 @@ export const receipts = pgTable("receipts", {
 export const nonprofits = pgTable("nonprofits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  description: text("description").notNull(),
+  location: text("location").notNull(),
+  imageUrl: text("image_url").notNull(),
+  category: text("category").notNull(),
   verified: integer("verified").notNull().default(1), // boolean as integer
 });
 
