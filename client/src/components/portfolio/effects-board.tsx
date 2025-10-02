@@ -38,19 +38,52 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
 
   return (
     <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-      {/* Effect A Card */}
+      {/* Effect B - Aptos (Beginner) */}
       <Card>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-foreground">Effect A</h3>
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20">
-                Medium Risk
-              </Badge>
-              <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                Instant
-              </Badge>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Buy Your First Token</h3>
+              <p className="text-xs text-muted-foreground mt-1">Powered by Aptos</p>
             </div>
+            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+              Beginner
+            </Badge>
+          </div>
+          
+          <p className="text-sm font-medium text-foreground mb-2">
+            Start your crypto journey
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Learn how to purchase your first cryptocurrency token (APT) using credits. Understand pricing, fees, and how to hold digital assets.
+          </p>
+          
+          {canStartEffects ? (
+            effectBButton
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {effectBButton}
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Select a nonprofit first</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Effect A - Aave (Intermediate) */}
+      <Card>
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Collateralized Borrowing</h3>
+              <p className="text-xs text-muted-foreground mt-1">Powered by Aave</p>
+            </div>
+            <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+              Intermediate
+            </Badge>
           </div>
           
           <p className="text-sm font-medium text-foreground mb-2">
@@ -66,36 +99,6 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
             <Tooltip>
               <TooltipTrigger asChild>
                 {effectAButton}
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Select a nonprofit first</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Effect B Card */}
-      <Card>
-        <CardContent className="p-5 sm:p-6">
-          <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-foreground">Effect B</h3>
-            <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-              Low Risk
-            </Badge>
-          </div>
-          
-          <p className="text-sm font-medium text-foreground mb-2">Buy and hold</p>
-          <p className="text-sm text-muted-foreground mb-20">
-            Convert credits to APT and hold. Learn how price moves change your portfolio.
-          </p>
-          
-          {canStartEffects ? (
-            effectBButton
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {effectBButton}
               </TooltipTrigger>
               <TooltipContent>
                 <p>Select a nonprofit first</p>
