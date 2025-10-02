@@ -11,7 +11,7 @@ export function Header() {
 
   const hasNotifications = portfolio && (
     (portfolio.healthFactor && portfolio.healthFactor < 1.25) ||
-    (portfolio.healthFactor && portfolio.healthFactor > 1.8)
+    (portfolio.healthFactor && portfolio.healthFactor > 1.8 && portfolio.apt > 0)
   );
 
   return (
