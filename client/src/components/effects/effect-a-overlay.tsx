@@ -13,14 +13,15 @@ import { useToast } from "@/hooks/use-toast";
 interface EffectAOverlayProps {
   isOpen: boolean;
   onClose: () => void;
-  allocatedAmount: number;
 }
 
-type Step = 'overview' | 'step1' | 'step2' | 'step3' | 'step4' | 'success';
+type Step = 'amount-selection' | 'overview' | 'step1' | 'step2' | 'step3' | 'step4' | 'success';
 
-export function EffectAOverlay({ isOpen, onClose, allocatedAmount }: EffectAOverlayProps) {
-  const [currentStep, setCurrentStep] = useState<Step>('overview');
+export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
+  const [currentStep, setCurrentStep] = useState<Step>('amount-selection');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [allocatedAmount, setAllocatedAmount] = useState(0);
+  const [amountInput, setAmountInput] = useState("");
   const [borrowPercent, setBorrowPercent] = useState(80);
   const [donationAmount, setDonationAmount] = useState(0);
   
@@ -38,8 +39,24 @@ export function EffectAOverlay({ isOpen, onClose, allocatedAmount }: EffectAOver
 
   const confirmCancel = () => {
     setShowCancelDialog(false);
-    setCurrentStep('overview');
+    setCurrentStep('amount-selection');
+    setAmountInput("");
+    setAllocatedAmount(0);
     onClose();
+  };
+
+  const handleQuickChip = (chipAmount: string) => {
+    if (chipAmount === "max") {
+      setAmountInput(portfolio?.credits.toString() || "0");
+    } else {
+      setAmountInput(chipAmount);
+    }
+  };
+
+  const handleAmountContinue = () => {
+    const amount = parseFloat(amountInput) || 0;
+    setAllocatedAmount(amount);
+    setCurrentStep('overview');
   };
 
   const handleBegin = () => {
@@ -121,7 +138,9 @@ export function EffectAOverlay({ isOpen, onClose, allocatedAmount }: EffectAOver
   };
 
   const handleReturn = () => {
-    setCurrentStep('overview');
+    setCurrentStep('amount-selection');
+    setAmountInput("");
+    setAllocatedAmount(0);
     onClose();
   };
 
@@ -193,9 +212,68 @@ export function EffectAOverlay({ isOpen, onClose, allocatedAmount }: EffectAOver
         </div>
 
         {/* Progress Bar */}
-        {currentStep !== 'overview' && currentStep !== 'success' && renderProgressBar()}
+        {currentStep !== 'amount-selection' && currentStep !== 'overview' && currentStep !== 'success' && renderProgressBar()}
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Amount Selection */}
+          {currentStep === 'amount-selection' && (
+            <Card data-testid="effect-a-amount-selection">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  How much do you want to allocate?
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  Choose the amount of credits you want to use for Effect A. This will be converted to USDC, then swapped to APT for the donation strategy.
+                </p>
+                
+                <div className="mb-6">
+                  <Label htmlFor="effect-a-amount-input" className="text-sm font-medium text-foreground mb-2">
+                    Amount to allocate
+                  </Label>
+                  <Input
+                    id="effect-a-amount-input"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                    className="mb-2"
+                    data-testid="effect-a-amount"
+                  />
+                  
+                  <div className="flex items-center space-x-2 mb-2">
+                    {["100", "250", "500", "max"].map((chipAmount) => (
+                      <Button
+                        key={chipAmount}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleQuickChip(chipAmount)}
+                        className="px-3 py-1 text-xs"
+                        data-testid={`quick-chip-${chipAmount}`}
+                      >
+                        {chipAmount === "max" ? "Max" : chipAmount}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground" data-testid="credits-available">
+                    You have <span data-testid="credits-helper">
+                      {formatNumber(portfolio?.credits || 0)}
+                    </span> credits available.
+                  </p>
+                </div>
+                
+                <Button
+                  onClick={handleAmountContinue}
+                  disabled={!amountInput || parseFloat(amountInput) <= 0 || parseFloat(amountInput) > (portfolio?.credits || 0)}
+                  className="w-full"
+                  data-testid="amount-continue"
+                >
+                  Continue
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Overview */}
           {currentStep === 'overview' && (
             <Card data-testid="effect-a-overview">
