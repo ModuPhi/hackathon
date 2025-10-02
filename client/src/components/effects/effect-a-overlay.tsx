@@ -25,7 +25,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const [borrowPercent, setBorrowPercent] = useState(80);
   const [donationAmount, setDonationAmount] = useState(0);
   
-  const { portfolio, updatePortfolio, createReceipt, effectAData, setEffectAData } = usePortfolio();
+  const { portfolio, updatePortfolio, createReceipt, effectAData, setEffectAData, nonprofits } = usePortfolio();
   const { toast } = useToast();
 
   // Calculate all steps when component mounts or amount changes
@@ -117,6 +117,8 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const handleStep4Confirm = async () => {
     if (!portfolio) return;
     
+    const selectedNonprofit = nonprofits.find(np => portfolio.selectedNonprofits?.[0] === np.id);
+    
     await updatePortfolio({
       usdc: portfolio.usdc - donationAmount,
       effectsCompleted: portfolio.effectsCompleted + 1
@@ -125,7 +127,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
     await createReceipt({
       type: "Donation",
       amount: donationAmount,
-      cause: portfolio.selectedCause || undefined,
+      cause: selectedNonprofit?.name || undefined,
       reference: "MOCK-TX-001"
     });
     
@@ -530,7 +532,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                     </p>
                     <div className="flex items-center space-x-2 mt-4">
                       <span className="text-sm font-medium text-foreground" data-testid="step4-cause-name">
-                        {portfolio?.selectedCause}
+                        {nonprofits.find(np => portfolio?.selectedNonprofits?.[0] === np.id)?.name || 'Selected nonprofit'}
                       </span>
                       <CheckCircle className="w-4 h-4 text-primary" />
                     </div>

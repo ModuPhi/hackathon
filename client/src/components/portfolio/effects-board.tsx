@@ -12,7 +12,7 @@ interface EffectsBoardProps {
 export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardProps) {
   const { portfolio } = usePortfolio();
 
-  const canStartEffects = !!portfolio?.selectedCause;
+  const canStartEffects = (portfolio?.selectedNonprofits?.length ?? 0) > 0;
 
   const effectAButton = (
     <Button

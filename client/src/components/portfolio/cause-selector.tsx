@@ -1,54 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Heart, CheckCircle, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Heart, CheckCircle, X, MapPin } from "lucide-react";
 import { usePortfolio } from "@/hooks/use-portfolio";
 
 export function CauseSelector() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedCause, setSelectedCause] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { portfolio, nonprofits, updatePortfolio } = usePortfolio();
 
+  useEffect(() => {
+    if (portfolio?.selectedNonprofits) {
+      setSelectedIds(portfolio.selectedNonprofits);
+    }
+  }, [portfolio?.selectedNonprofits]);
+
+  const handleToggle = (nonprofitId: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(nonprofitId)) {
+        return prev.filter(id => id !== nonprofitId);
+      } else if (prev.length < 3) {
+        return [...prev, nonprofitId];
+      }
+      return prev;
+    });
+  };
+
   const handleSave = async () => {
-    if (selectedCause && portfolio) {
-      await updatePortfolio({ selectedCause });
+    if (portfolio) {
+      await updatePortfolio({ selectedNonprofits: selectedIds });
       setIsOpen(false);
     }
   };
 
+  const selectedNonprofits = nonprofits.filter(np => 
+    portfolio?.selectedNonprofits?.includes(np.id)
+  );
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div className="flex items-center space-x-3">
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-smooth shadow-sm"
-          data-testid="choose-cause-btn"
-        >
-          <Heart className="w-5 h-5 mr-2" />
-          Choose nonprofit
-        </Button>
-        
-        {portfolio?.selectedCause && (
-          <div className="text-sm text-muted-foreground" data-testid="selected-cause">
-            Selected cause: <span className="font-medium text-foreground" data-testid="selected-cause-name">
-              {portfolio.selectedCause}
-            </span>
-          </div>
-        )}
-      </div>
+    <div>
+      <Button
+        onClick={() => setIsOpen(true)}
+        className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-smooth shadow-sm"
+        data-testid="choose-cause-btn"
+      >
+        <Heart className="w-5 h-5 mr-2" />
+        {selectedNonprofits.length > 0 ? `${selectedNonprofits.length} nonprofit${selectedNonprofits.length > 1 ? 's' : ''} selected` : 'Choose nonprofits'}
+      </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md" data-testid="cause-modal">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" data-testid="cause-modal">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <DialogTitle>Choose a nonprofit</DialogTitle>
+              <div>
+                <DialogTitle className="text-2xl">Choose nonprofits to support</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Select up to 3 organizations. {selectedIds.length}/3 selected
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(false)}
-                className="h-6 w-6"
+                className="h-8 w-8"
                 data-testid="close-cause-modal"
               >
                 <X className="h-4 w-4" />
@@ -56,34 +72,86 @@ export function CauseSelector() {
             </div>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <RadioGroup value={selectedCause} onValueChange={setSelectedCause}>
-              {nonprofits.map((nonprofit) => (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+            {nonprofits.map((nonprofit) => {
+              const isSelected = selectedIds.includes(nonprofit.id);
+              const isDisabled = !isSelected && selectedIds.length >= 3;
+              
+              return (
                 <div
                   key={nonprofit.id}
-                  className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:border-primary transition-smooth cursor-pointer"
+                  className={`relative border rounded-lg overflow-hidden transition-all ${
+                    isSelected 
+                      ? 'border-primary shadow-md ring-2 ring-primary ring-opacity-50' 
+                      : isDisabled
+                      ? 'border-border opacity-60 cursor-not-allowed'
+                      : 'border-border hover:border-primary hover:shadow-sm cursor-pointer'
+                  }`}
+                  onClick={() => !isDisabled && handleToggle(nonprofit.id)}
+                  data-testid={`nonprofit-card-${nonprofit.id}`}
                 >
-                  <RadioGroupItem value={nonprofit.name} id={nonprofit.id} />
-                  <Label 
-                    htmlFor={nonprofit.id} 
-                    className="flex-1 flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="text-sm font-medium text-foreground">{nonprofit.name}</span>
-                    {nonprofit.verified === 1 && (
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                    )}
-                  </Label>
+                  <div className="relative h-40 bg-muted">
+                    <img
+                      src={nonprofit.imageUrl}
+                      alt={nonprofit.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 left-2 flex items-center space-x-2">
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={isDisabled}
+                        onCheckedChange={() => handleToggle(nonprofit.id)}
+                        className="bg-white border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        data-testid={`checkbox-${nonprofit.id}`}
+                      />
+                      {nonprofit.verified === 1 && (
+                        <Badge variant="secondary" className="bg-white/90 text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1 text-primary" />
+                          Verified
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-foreground line-clamp-1">
+                        {nonprofit.name}
+                      </h3>
+                    </div>
+                    
+                    <div className="flex items-center text-xs text-muted-foreground mb-2">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {nonprofit.location}
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                      {nonprofit.description}
+                    </p>
+                    
+                    <Badge variant="outline" className="text-xs">
+                      {nonprofit.category}
+                    </Badge>
+                  </div>
                 </div>
-              ))}
-            </RadioGroup>
-            
+              );
+            })}
+          </div>
+          
+          <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              data-testid="cancel-selection"
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleSave}
-              disabled={!selectedCause}
-              className="w-full"
+              disabled={selectedIds.length === 0}
               data-testid="save-cause-btn"
             >
-              Save cause
+              Save selection ({selectedIds.length})
             </Button>
           </div>
         </DialogContent>
