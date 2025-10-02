@@ -11,12 +11,10 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 export default function PortfolioDashboard() {
   const [effectAOverlayOpen, setEffectAOverlayOpen] = useState(false);
   const [effectBOverlayOpen, setEffectBOverlayOpen] = useState(false);
-  const [effectAAmount, setEffectAAmount] = useState(0);
   
   const { isLoading } = usePortfolio();
 
-  const handleStartEffectA = (amount: number) => {
-    setEffectAAmount(amount);
+  const handleStartEffectA = () => {
     setEffectAOverlayOpen(true);
   };
 
@@ -80,7 +78,6 @@ export default function PortfolioDashboard() {
       <EffectAOverlay
         isOpen={effectAOverlayOpen}
         onClose={() => setEffectAOverlayOpen(false)}
-        allocatedAmount={effectAAmount}
       />
 
       <EffectBOverlay
