@@ -1,0 +1,166 @@
+Build a complete interactive web app called “DeFi Giving”. This is an education-first portfolio app. The user starts with demo funds, chooses a nonprofit, then runs an Effect that teaches DeFi by doing. After each Effect the user returns to the portfolio with updated state and a receipt. Use mocked in-memory or local JSON data that you create yourself. Do not call external services. Focus on correct UI behavior, clear copy, and smooth state transitions.
+
+GLOBAL UX RULES
+- Tone: plain English, no crypto jargon. Say “account” and “portfolio”.
+- Every action has an explanation, a confirmation, and a visible result.
+- All numbers update immediately on screen after each confirmed step.
+- Provide helpful validation messages instead of errors where possible.
+- Mobile first, responsive up to desktop. Keyboard accessible. High contrast.
+- Include a subtle “Mock Mode” badge in the header so judges know this is a teaching demo.
+- Use tasteful animations that last under 250 ms on step transitions and toasts.
+
+SCREENS AND MOVEMENTS
+
+1) PORTFOLIO DASHBOARD - HOME
+   Purpose: single place to see balances, pick a cause, pick an Effect, and review receipts.
+
+   Layout
+   - Header: app title “DeFi Giving”, left-aligned. Right side: “Demo User”, “Mock Mode”, and a small pill “Effects completed: N”.
+   - Balances row: 5 cards with big numbers and tiny captions.
+     1. Credits - default 1,000.00 USD
+     2. USDC - default 0.00
+     3. APT value - default 0.00
+     4. Debt - default 0.00
+     5. Health factor - “N/A” until there is a loan, otherwise a colored meter and a number, green above 1.5, yellow 1.25 to 1.5, red below 1.25
+   - Cause picker button: “Choose nonprofit”. When clicked open a modal with a two column list of at least 3 causes:
+       “Red Cross (test)”, “UNICEF (test)”, “Doctors Without Borders (test)”.
+       Each row has name, verified checkmark, and a select radio.
+       Primary action: “Save cause”. Disabled until a cause is chosen.
+       When saved, the dashboard shows “Selected cause: NAME” next to the button.
+   - Effects board: two big cards side by side.
+       Card 1 - Effect A: “Donate now. Let your asset grow.”
+         - Short description: “Buy a crypto asset you expect to rise. Borrow against it today. Donate the borrowed amount now while your asset keeps growing.”
+         - Risk label: Medium
+         - Immediacy label: Instant
+         - Inputs: “Amount to allocate” number input with quick chips 100, 250, 500, Max. Default empty.
+         - Start button: “Start Effect A”. Disabled until a cause is chosen and amount is valid.
+       Card 2 - Effect B: “Buy and hold” (stub)
+         - Short description: “Convert credits to APT and hold. Learn how price moves change your portfolio.”
+         - Risk label: Low
+         - Start button opens a simple 2 step lesson and returns to portfolio with APT value updated and no receipts.
+   - Receipts timeline below effects
+       Columns: Type, Amount, Cause, Reference, Time
+       Empty state text: “No receipts yet. Run an effect to create your first on chain style receipt.”
+
+   Validations on dashboard
+   - If no cause selected, the Effects Start buttons show a tooltip “Select a nonprofit first”.
+   - Amount input must be positive and not exceed Credits. Show inline helper “You have X credits available.”
+
+2) EFFECT A - LEND AND DONATE - LESSON FLOW
+   Purpose: teach onramp fees, DEX swaps, lending, borrowing, health factor, and donation. Always returns to portfolio at the end.
+
+   Entry
+   - Open as full screen overlay with a breadcrumb “Portfolio > Effect A”. Show a 4-step progress bar at the top with step titles. Provide “Cancel and return” in the top right with a confirm dialog.
+
+   Overview panel before Step 1
+   - Title: “Donate now. Let your asset grow.”
+   - Summary text:
+     “You will convert credits to USDC, swap to APT, supply APT as collateral, borrow USDC, then donate the borrowed amount to your chosen nonprofit. You keep the APT position. You can act on it later as markets move.”
+   - Show a quick preview box:
+     Starting credits: the chosen amount
+     Target borrow: 80 percent
+     Target health buffer: at least 1.5
+   - Primary action: “Begin”
+
+   STEP 1 - Convert credits to USDC
+   - Left column - copy:
+     Title: “Convert credits to USDC”
+     Body: “Onramps cost money. We model a simple 1.5 percent fee so you see the tradeoff.”
+     Small note link “What is a fee?” opens a 2 line popover: “Fees pay payment networks and providers. In this lesson it is fixed for clarity.”
+   - Right column - calculator:
+     Shows “Credits to convert” defaulting to the user’s chosen allocation amount.
+     Shows “Fee 1.5 percent” and the fee amount.
+     Shows “You receive in USDC” = credits minus fee.
+   - Primary button: “Convert to USDC”
+   - On confirm: animate the USDC number increasing, show a toast “Converted to USDC. Fee applied.” Enable “Next”.
+
+   STEP 2 - Swap USDC to APT
+   - Left copy:
+     Title: “Swap USDC to APT”
+     Body: “A decentralized exchange quotes a price and executes a swap. Quotes move with supply and demand.”
+     Show a tiny line “We will include a small slippage so you see the concept.”
+   - Right panel:
+     “You provide” shows the USDC from Step 1.
+     “Quote” shows an example rate and a small slippage line like “0.30 percent slippage assumed”.
+     “You receive” shows APT value in USD for simplicity.
+   - Primary: “Swap to APT”
+   - On confirm: animate APT value increasing and USDC decreasing to 0. Toast “Swapped to APT”. Enable “Next”.
+
+   STEP 3 - Supply APT and borrow USDC
+   - Left copy:
+     Title: “Supply and borrow”
+     Body: “Supplying APT makes it collateral. You can borrow USDC against it while keeping APT exposure. Health factor describes your safety buffer.”
+   - Right panel:
+     Show a slider or quick buttons for target borrow percent with default 80 percent.
+     Show a health meter:
+       - If simulated HF >= 1.5 show green and the number. If lower show warning copy “Choose a lower borrow to stay safe.”
+     Show “Borrowed USDC” result number.
+   - Primary: “Supply and borrow”
+   - On confirm: animate Debt rising and USDC balance rising to the borrowed amount. Toast “Loan opened”. Enable “Next”.
+
+   STEP 4 - Donate borrowed USDC
+   - Left copy:
+     Title: “Donate to your nonprofit”
+     Body: “Send the borrowed USDC now. Your APT position remains. You can manage it later if markets move.”
+     Show the selected cause name and a tiny verified badge.
+   - Right panel:
+     Donation amount defaults to the borrowed USDC. Provide an editable amount with Max button.
+     Show “Reference” placeholder like “MOCK-TX-001” to simulate an on chain receipt id.
+   - Primary: “Donate now”
+   - On confirm:
+     - Reduce USDC balance by the donation amount
+     - Add a new row to the receipts timeline with:
+       Type “Donation”, Amount, Cause, Reference “MOCK-TX-001”, and a current timestamp
+     - Show a success screen with a green check:
+       Title: “Donation sent”
+       Body: “You have an active APT position and a donation receipt. You can return to your portfolio now.”
+       Primary: “Return to portfolio”
+   - On return: close overlay and show the Portfolio with all numbers updated.
+
+   Post-effect portfolio state for a typical 500 allocation example
+   - Credits: 500 remaining
+   - APT value: about 500
+   - Debt: about 400
+   - Health factor: show 1.7 as an example
+   - Receipts timeline: one donation row for about 400 to the chosen cause
+
+3) EFFECT B - BUY AND HOLD - STUB LESSON
+   - Minimal 2 step overlay
+     Step 1: Convert credits to USDC with a small fee explanation
+     Step 2: Swap to APT. Show “You now hold APT. Come back later to see how price changes affect your portfolio.”
+   - Returns to portfolio with APT value increased and no receipts.
+
+4) NOTIFICATIONS AND MICRO-LESSONS - SKELETON
+   - In the Portfolio header show a bell icon. If the health factor falls below 1.25 or increases above 1.8, show a small badge 1.
+   - Clicking the bell opens a panel with items like:
+     “Your safety buffer is thin. Learn how to add collateral or repay a little.” Button “Open micro-lesson”.
+     “APT is up 25 percent. You can borrow an extra X and donate more.” Button “Open micro-lesson”.
+   - Each button opens a tiny 1 or 2 step overlay with a single slider and confirm, then returns to portfolio. These can reuse the same animations and toasts.
+
+EMPTY STATES, ERRORS, AND GUARDS
+- If a user starts an effect without selecting a cause, block the Start button and show a tooltip “Select a nonprofit first”.
+- If the amount exceeds Credits, show inline helper “Reduce amount. You have only X credits”.
+- While any step runs, show a small spinner inside the primary button. Do not block the whole screen.
+- If something fails in a step, show an inline message at the top of the step: “That did not work. Try again.” Keep the inputs preserved.
+
+COPY EXAMPLES - USE THESE LITERALLY
+- Portfolio balances captions: “Credits”, “USDC”, “APT value”, “Debt”, “Health factor”
+- Effect A card subtitle: “Donate now. Let your asset grow.”
+- Step 1 body: “Onramps cost money. We model a simple 1.5 percent fee so you see the tradeoff.”
+- Step 2 body: “A decentralized exchange quotes a price and executes a swap. Quotes move with supply and demand.”
+- Step 3 body: “Supplying APT makes it collateral. You can borrow USDC against it while keeping APT exposure. Health factor describes your safety buffer.”
+- Step 4 body: “Send the borrowed USDC now. Your APT position remains. You can manage it later if markets move.”
+- Success toast texts: “Converted to USDC. Fee applied.” “Swapped to APT.” “Loan opened.” “Donation sent.”
+
+DEMO SCRIPT - THE RUN SHOULD MATCH THIS EXACTLY
+1. Open app. Portfolio shows Credits 1,000, other balances zero, cause not selected, and two Effect cards.
+2. Click “Choose nonprofit”. Select “Red Cross (test)”. Save cause. Dashboard now shows “Selected cause: Red Cross (test)”.
+3. On Effect A card enter 500 and click Start.
+4. Step 1 Convert: confirm. Toast appears. Next.
+5. Step 2 Swap: confirm. Toast appears. Next.
+6. Step 3 Supply and borrow: leave default 80 percent. Confirm. Toast appears. Next.
+7. Step 4 Donate: confirm. Success screen. Return to portfolio.
+8. Portfolio now shows Credits about 500, APT value about 500, Debt about 400, Health factor 1.7, and a receipt row “Donation - 400 - Red Cross (test) - MOCK-TX-001 - time now”.
+9. Open the bell icon to show a sample micro-lesson notification.
+
+Finish when the app behaves exactly like this. Build the entire app.
