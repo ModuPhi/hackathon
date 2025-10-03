@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Heart, CheckCircle, X, MapPin } from "lucide-react";
+import { Heart, X, MapPin } from "lucide-react";
 import { usePortfolio } from "@/hooks/use-portfolio";
 
 export function CauseSelector() {
