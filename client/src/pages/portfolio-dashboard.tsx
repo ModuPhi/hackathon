@@ -5,6 +5,7 @@ import { CauseSelector } from "@/components/portfolio/cause-selector";
 import { SelectedNonprofits } from "@/components/portfolio/selected-nonprofits";
 import { EffectsBoard } from "@/components/portfolio/effects-board";
 import { ReceiptsTimeline } from "@/components/portfolio/receipts-timeline";
+import { CurrentPositions } from "@/components/portfolio/current-positions";
 import { IntroEffectOverlay } from "@/components/effects/intro-effect-overlay";
 import { EffectAOverlay } from "@/components/effects/effect-a-overlay";
 import { EffectBOverlay } from "@/components/effects/effect-b-overlay";
@@ -76,7 +77,7 @@ export default function PortfolioDashboard() {
         </section>
 
         {/* Selected Nonprofit & Donation Receipts */}
-        <section>
+        <section className="mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-2">This is who you're playing for</h2>
           <p className="text-sm text-muted-foreground mb-6">
             See this as a challenge to maximize returns for your chosen nonprofit. Every strategy you learn can help make a bigger impact.
@@ -93,6 +94,11 @@ export default function PortfolioDashboard() {
               <ReceiptsTimeline />
             </div>
           </div>
+        </section>
+
+        {/* Current Positions */}
+        <section>
+          <CurrentPositions />
         </section>
       </main>
 

@@ -98,7 +98,7 @@ export function getHealthFactorDisplay(healthFactor: number | null) {
 }
 
 export function formatNumber(num: number): string {
-  return parseFloat(num.toFixed(2)).toFixed(2);
+  return `$${parseFloat(num.toFixed(2)).toFixed(2)}`;
 }
 
 export function generateReceiptReference(): string {
