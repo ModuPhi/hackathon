@@ -3,18 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { CheckCircle2 } from "lucide-react";
 import aptosLogo from "@assets/Aptos_Primary_BLK_1759458032595.png";
 import aaveLogo from "@assets/aave_1759458032595.png";
 
 interface EffectsBoardProps {
+  onStartIntro: () => void;
   onStartEffectA: () => void;
   onStartEffectB: () => void;
 }
 
-export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardProps) {
+export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: EffectsBoardProps) {
   const { portfolio } = usePortfolio();
 
   const canStartEffects = (portfolio?.selectedNonprofits?.length ?? 0) > 0;
+  const completedEffects = portfolio?.completedEffects || [];
+  
+  const isIntroComplete = completedEffects.includes('intro');
+  const isEffectBComplete = completedEffects.includes('effect-b');
+  const isEffectAComplete = completedEffects.includes('effect-a');
 
   const effectAButton = (
     <Button
@@ -38,14 +45,57 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
     </Button>
   );
 
+  const introButton = (
+    <Button
+      onClick={onStartIntro}
+      className="w-full"
+      data-testid="start-intro-btn"
+    >
+      {isIntroComplete ? 'Review Introduction' : 'Start Introduction'}
+    </Button>
+  );
+
   return (
-    <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-      {/* Effect B - Aptos (Beginner) */}
-      <Card>
+    <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+      {/* Intro Effect */}
+      <Card className={isIntroComplete ? 'border-success/50' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-foreground">Buy Your First Token</h3>
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                Welcome to DeFi Giving
+                {isIntroComplete && (
+                  <CheckCircle2 className="w-5 h-5 text-success" data-testid="intro-complete-badge" />
+                )}
+              </h3>
+            </div>
+            <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+              Introduction
+            </Badge>
+          </div>
+          
+          <p className="text-sm font-medium text-foreground mb-2">
+            Start your learning journey
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Learn what DeFi Giving is, how this platform works, and what you'll accomplish through the Effects.
+          </p>
+          
+          {introButton}
+        </CardContent>
+      </Card>
+
+      {/* Effect B - Aptos (Beginner) */}
+      <Card className={isEffectBComplete ? 'border-success/50' : ''}>
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                Buy Your First Token
+                {isEffectBComplete && (
+                  <CheckCircle2 className="w-5 h-5 text-success" data-testid="effect-b-complete-badge" />
+                )}
+              </h3>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Powered by</span>
                 <img src={aptosLogo} alt="Aptos" className="h-4" data-testid="aptos-logo" />
@@ -79,11 +129,16 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
       </Card>
 
       {/* Effect A - Aave (Intermediate) */}
-      <Card>
+      <Card className={isEffectAComplete ? 'border-success/50' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-foreground">Collateralized Borrowing</h3>
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                Collateralized Borrowing
+                {isEffectAComplete && (
+                  <CheckCircle2 className="w-5 h-5 text-success" data-testid="effect-a-complete-badge" />
+                )}
+              </h3>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Powered by</span>
                 <img src={aaveLogo} alt="Aave" className="h-4" data-testid="aave-logo" />
