@@ -1,0 +1,62 @@
+Replace the portfolio summary row with four friendly cards and info popovers. Remove “Health factor” and “Debt” from the surface UI. Do not change any navigation or effect flows.
+
+TITLE BAR
+- Keep “DeFi Giving”, Mock Mode pill, Effects completed counter, bell icon, Demo User.
+
+PORTFOLIO SUMMARY — ROW OF 4 CARDS
+Create four equal cards in one horizontal row (responsive: stack to 2x2 on narrow screens). Each card shows a big number, a short caption, and an ⓘ icon that opens a small popover with 2–3 sentences of plain-English help. Numbers update immediately when an Effect completes. Subtle 200 ms fade/scale animation on number changes and popovers. Accessible: keyboard focus ring, popovers close with Esc and clicking outside.
+
+Card 1 — Cash Available
+- Label: “Cash Available”
+- Caption: “Ready to allocate”
+- Number: current liquid amount the user can use. Keep the existing demo starting value.
+- ⓘ popover text:
+  “This is the portion of your credits you have not used yet. You can start a new Effect or donate directly from here.”
+
+Card 2 — Invested Assets
+- Label: “Invested Assets”
+- Caption: “Still growing”
+- Number: current value of held tokens (APT or others) shown as a single USD value. If none, show 0.00.
+- ⓘ popover text:
+  “This is the value of the crypto you hold here. It may rise or fall with the market. You keep exposure while you learn.”
+
+Card 3 — Commitments
+- Label: “Commitments”
+- Caption: “To be repaid later”
+- Number: total borrowed amount outstanding. Hide the card until the user has any borrowed amount, or render the number as 0.00 with a lighter style before any loan exists.
+- ⓘ popover text:
+  “When you borrow to power a donation, this shows the amount to repay later. Your assets back it, so you still keep exposure.”
+
+Card 4 — Donated to Causes  (highlight this card)
+- Label: “Donated to Causes”
+- Caption: “Your impact”
+- Number: cumulative donations to nonprofits
+- Visual: slight accent color on border or background to draw the eye without overpowering the row
+- ⓘ popover text:
+  “This is the total you have sent to nonprofits. Each donation appears in your receipts with a reference.”
+
+STYLE AND BEHAVIOR
+- Cards are the same size. Use clear numeric formatting with two decimals and thousand separators.
+- Tooltips and popovers use the same component across all four for consistency.
+- When an Effect finishes:
+  - If the user ran Effect A with a typical example, update to something like:
+    Cash Available ~ 500
+    Invested Assets ~ 500
+    Commitments ~ 400
+    Donated to Causes ~ 400
+  - Animate number changes. Show a toast “Portfolio updated.”
+- Keep the Receipts table exactly as is below the row.
+
+COPY RULES
+- No wallet jargon. Use “account” and “portfolio”.
+- Keep captions short: “Ready to allocate”, “Still growing”, “To be repaid later”, “Your impact”.
+
+ACCESSIBILITY AND RESPONSIVENESS
+- Keyboard reachable ⓘ icons. Popovers trap focus and close with Esc.
+- On phones: stack as a 2x2 grid. On tablets: 4 in a row with wrap if needed.
+
+ACCEPTANCE CHECKS
+- The old “Health factor” and “Debt” cards are not visible in the summary row.
+- The four new cards render with correct labels, captions, and ⓘ popovers containing the exact copy above.
+- Running Effect A once updates all relevant numbers and the Receipts table, and the “Donated to Causes” card visually stands out.
+- Row remains responsive and accessible.
