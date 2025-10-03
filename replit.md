@@ -2,20 +2,37 @@
 
 ## Overview
 
-DeFi Giving is an educational web application designed to teach users about DeFi concepts through interactive portfolio management. Users start with demo funds and learn about cryptocurrency operations like swapping, lending, borrowing, and donating to nonprofits through guided "Effects" - educational flows that simulate real DeFi operations in a safe, mock environment.
+DeFi Giving is a hands-on educational platform designed to teach users about DeFi concepts through real transactions and interactive portfolio management. This white-label platform is branded for financial advisors and money managers, enabling their clients to learn cryptocurrency fundamentals using real capital ($1,000 starting amount) in a controlled learning environment.
+
+Users learn about cryptocurrency operations like swapping, lending, borrowing, and donating to nonprofits through guided "Effects" - educational flows that use real DeFi protocols. The goal is twofold: master cryptocurrency processes and generate returns for chosen nonprofits.
 
 The application emphasizes plain English explanations over technical jargon, providing step-by-step guidance through complex financial operations with immediate visual feedback and clear validation messages.
 
+**Learning with Real Money:**
+- Users start with $1,000 in capital (not demo credits)
+- Limited exposure: worst case is $1,000 capital loss, best case is generating returns beyond initial investment
+- All transactions use real DeFi protocols from companies like Aave and Aptos
+
 **Effects are branded educational experiences sponsored by crypto companies:**
+- **Intro Effect**: "Welcome to DeFi Giving" - Platform introduction explaining the real-money learning approach
+  - 4-screen educational flow covering platform overview, limited exposure concept, and learning goals
+  - Explains $1,000 starting capital and worst/middle/best case scenarios
+  - No transactions - purely educational
 - **Effect B (Beginner)**: "Buy Your First Token" - Powered by Aptos - teaches simple token purchase
 - **Effect A (Intermediate)**: "Collateralized Borrowing" - Powered by Aave - teaches asset-backed lending
   - Aave-branded educational content throughout the flow
   - Interactive LTV slider (0-100% visual range, enforced 80% max) with real-time health factor updates
   - Comprehensive success screen explaining DeFi lending concepts and user accomplishments
 
+**Effect Completion Tracking:**
+- Completed effects show with green background (`bg-success/5`) and green border (`border-success`)
+- Buttons change to outline variant with "Completed ✓" text
+- Individual effect completion tracked in `completedEffects` JSON array (['intro', 'effect-a', 'effect-b'])
+- Users can still click completed effects to review content
+
 **Portfolio Dashboard Features:**
 - **4-Card Summary Row** with info popovers:
-  - Cash Available (credits ready to allocate)
+  - Cash Available (USD capital ready to allocate)
   - Invested Assets (crypto holdings value)
   - Commitments (borrowed amounts, muted when zero)
   - Donated to Causes (cumulative donations, highlighted)
@@ -88,7 +105,7 @@ The current implementation uses an in-memory storage solution suitable for demo 
 
 **Database Schema (PostgreSQL via Drizzle):**
 - `users` - User authentication and identity
-- `portfolios` - User financial state (credits, USDC, APT, debt, health factor) + `selectedNonprofits` JSON array (up to 3 IDs)
+- `portfolios` - User financial state (credits, USDC, APT, debt, health factor) + `selectedNonprofits` JSON array (up to 3 IDs) + `completedEffects` JSON array (['intro', 'effect-a', 'effect-b'])
 - `receipts` - Transaction history for Effects
 - `nonprofits` - Available charitable organizations with `description`, `location`, `imageUrl`, `category` fields
 
