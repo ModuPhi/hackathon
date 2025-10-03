@@ -25,9 +25,9 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
   const effectAButton = (
     <Button
       onClick={onStartEffectA}
-      disabled={!canStartEffects || isEffectAComplete}
+      disabled={!canStartEffects}
       className="w-full"
-      variant={isEffectAComplete ? "secondary" : "default"}
+      variant={isEffectAComplete ? "outline" : "default"}
       data-testid="start-effect-a-btn"
     >
       {isEffectAComplete ? 'Completed ✓' : 'Start Effect A'}
@@ -37,9 +37,9 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
   const effectBButton = (
     <Button
       onClick={onStartEffectB}
-      disabled={!canStartEffects || isEffectBComplete}
+      disabled={!canStartEffects}
       className="w-full"
-      variant={isEffectBComplete ? "secondary" : "default"}
+      variant={isEffectBComplete ? "outline" : "default"}
       data-testid="start-effect-b-btn"
     >
       {isEffectBComplete ? 'Completed ✓' : 'Start Effect B'}
@@ -49,9 +49,8 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
   const introButton = (
     <Button
       onClick={onStartIntro}
-      disabled={isIntroComplete}
       className="w-full"
-      variant={isIntroComplete ? "secondary" : "default"}
+      variant={isIntroComplete ? "outline" : "default"}
       data-testid="start-intro-btn"
     >
       {isIntroComplete ? 'Completed ✓' : 'Start Introduction'}
