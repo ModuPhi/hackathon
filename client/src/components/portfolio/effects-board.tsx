@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import aptosLogo from "@assets/Aptos_Primary_BLK_1759458032595.png";
 import aaveLogo from "@assets/aave_1759458032595.png";
@@ -15,12 +14,20 @@ interface EffectsBoardProps {
 export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: EffectsBoardProps) {
   const { portfolio } = usePortfolio();
 
-  const canStartEffects = !!portfolio?.selectedNonprofit;
+  const hasSelectedNonprofit = !!portfolio?.selectedNonprofit;
   const completedEffects = portfolio?.completedEffects || [];
   
   const isIntroComplete = completedEffects.includes('intro');
   const isEffectBComplete = completedEffects.includes('effect-b');
   const isEffectAComplete = completedEffects.includes('effect-a');
+
+  const canStartEffects = hasSelectedNonprofit && isIntroComplete;
+
+  const getDisabledMessage = () => {
+    if (!hasSelectedNonprofit) return 'Select a nonprofit first';
+    if (!isIntroComplete) return 'Complete introduction first';
+    return '';
+  };
 
   const effectAButton = (
     <Button
@@ -30,7 +37,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
       variant={isEffectAComplete ? "outline" : "default"}
       data-testid="start-effect-a-btn"
     >
-      {isEffectAComplete ? 'Completed ✓' : 'Start Effect A'}
+      {isEffectAComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Effect A'}
     </Button>
   );
 
@@ -42,7 +49,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
       variant={isEffectBComplete ? "outline" : "default"}
       data-testid="start-effect-b-btn"
     >
-      {isEffectBComplete ? 'Completed ✓' : 'Start Effect B'}
+      {isEffectBComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Effect B'}
     </Button>
   );
 
@@ -109,18 +116,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
             Learn how to purchase your first cryptocurrency token (APT) using credits. Understand pricing, fees, and how to hold digital assets.
           </p>
           
-          {canStartEffects ? (
-            effectBButton
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {effectBButton}
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Select a nonprofit first</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {effectBButton}
         </CardContent>
       </Card>
 
@@ -149,18 +145,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
             Buy a crypto asset you expect to rise. Borrow against it today. Donate the borrowed amount now while your asset keeps growing.
           </p>
           
-          {canStartEffects ? (
-            effectAButton
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {effectAButton}
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Select a nonprofit first</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {effectAButton}
         </CardContent>
       </Card>
     </div>
