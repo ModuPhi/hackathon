@@ -51,9 +51,9 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
         <VisuallyHidden>
-          <DialogTitle>DeFi Giving Introduction</DialogTitle>
+          <DialogTitle>Crypto Education Introduction</DialogTitle>
           <DialogDescription>
-            Learn about the DeFi Giving platform and how to use it to master cryptocurrency concepts while supporting nonprofits
+            Learn about the crypto education platform and how to use it to master cryptocurrency concepts while supporting nonprofits
           </DialogDescription>
         </VisuallyHidden>
         <div className="p-6 sm:p-8">
@@ -64,7 +64,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                 <BookOpen className="w-8 h-8 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to DeFi Giving</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Your Crypto Education</h2>
                 <p className="text-lg text-muted-foreground">
                   Learn crypto and DeFi through real transactions
                 </p>

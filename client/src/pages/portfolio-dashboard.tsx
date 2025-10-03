@@ -55,9 +55,29 @@ export default function PortfolioDashboard() {
       <Header />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Welcome Message */}
+        <section className="mb-6">
+          <div className="bg-card border border-border rounded-lg p-5">
+            <p className="text-sm text-muted-foreground">
+              Welcome to your crypto education portal. Your advisor has allocated capital for you to learn about 
+              decentralized finance through hands-on lessons. <strong className="text-foreground">Start with the 
+              Introduction lesson below</strong> to understand how this platform works and what you'll accomplish.
+            </p>
+          </div>
+        </section>
+
         {/* Balance Cards */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Your Portfolio</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Your Portfolio</h2>
+            <button
+              onClick={() => document.getElementById('current-positions')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-sm text-primary hover:underline"
+              data-testid="portfolio-details-link"
+            >
+              details
+            </button>
+          </div>
           <BalanceCards />
         </section>
 
@@ -97,7 +117,7 @@ export default function PortfolioDashboard() {
         </section>
 
         {/* Current Positions */}
-        <section>
+        <section id="current-positions">
           <CurrentPositions />
         </section>
       </main>
