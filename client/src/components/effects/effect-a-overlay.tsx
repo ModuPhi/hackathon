@@ -24,7 +24,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [allocatedAmount, setAllocatedAmount] = useState(0);
   const [amountInput, setAmountInput] = useState("");
-  const [borrowPercent, setBorrowPercent] = useState(80);
+  const [borrowPercent, setBorrowPercent] = useState(40);
   const [donationAmount, setDonationAmount] = useState(0);
   
   const { portfolio, updatePortfolio, createReceipt, effectAData, setEffectAData, nonprofits } = usePortfolio();
