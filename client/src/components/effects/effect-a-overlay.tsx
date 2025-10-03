@@ -133,12 +133,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
       reference: "MOCK-TX-001"
     });
     
-    toast({
-      title: "Donation sent.",
-      duration: 3000
-    });
-
-    setTimeout(() => setCurrentStep('success'), 500);
+    setCurrentStep('success');
   };
 
   const handleReturn = () => {
@@ -611,23 +606,75 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
 
           {/* Success Screen */}
           {currentStep === 'success' && (
-            <Card data-testid="effect-a-success">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-success-foreground" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Donation sent</h2>
-                <p className="text-muted-foreground mb-6">
-                  You have an active APT position and a donation receipt. You can return to your portfolio now.
-                </p>
+            <div data-testid="effect-a-success" className="space-y-6">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-success-foreground" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Donation Sent Successfully!</h2>
+                  <p className="text-muted-foreground text-lg">
+                    Congratulations! You've just used DeFi to make a real-world impact.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <img src={aaveLogo} alt="Aave" className="h-5" />
+                    What You Just Accomplished
+                  </h3>
+                  <div className="space-y-3 text-muted-foreground">
+                    <p>
+                      <strong className="text-foreground">Your APT is Still Yours:</strong> Even though you borrowed against it, 
+                      your {formatNumber(calculatedData.step2.aptReceived)} USD worth of APT remains in your wallet. 
+                      If APT's price goes up, you benefit from those gains—while your loan amount stays fixed.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">You Created Liquidity from Nothing:</strong> Instead of selling your crypto 
+                      to donate, you unlocked its value while keeping ownership. This is the power of collateralized lending—your 
+                      assets work for you in multiple ways at once.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Real DeFi Impact:</strong> What you just experienced mirrors how major 
+                      investors and protocols use platforms like Aave every day. They borrow against their holdings to invest, 
+                      spend, or create opportunity—all without triggering taxable sales or losing their position.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-3">Why This Matters in DeFi</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Traditional finance forces you to choose: hold your assets OR use their value. DeFi eliminates that trade-off. 
+                    With collateralized lending, you can:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground list-disc list-inside">
+                    <li>Keep your crypto exposure while accessing cash</li>
+                    <li>Avoid selling during market dips</li>
+                    <li>Deploy capital without losing your long-term positions</li>
+                    <li>Manage risk through health factors and instant transparency</li>
+                  </ul>
+                  <p className="text-muted-foreground mt-4 text-sm">
+                    💡 <strong className="text-foreground">The Big Idea:</strong> This is why DeFi is revolutionary—it turns 
+                    static holdings into dynamic financial tools, all while you stay in complete control.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-center">
                 <Button
                   onClick={handleReturn}
                   data-testid="return-to-portfolio"
+                  size="lg"
                 >
-                  Return to portfolio
+                  Return to Portfolio
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       </div>
