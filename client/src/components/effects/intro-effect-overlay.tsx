@@ -59,18 +59,20 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to DeFi Giving</h2>
                 <p className="text-lg text-muted-foreground">
-                  A hands-on learning platform for decentralized finance
+                  Learn crypto and DeFi through real transactions
                 </p>
               </div>
               <Card className="text-left">
                 <CardContent className="p-6">
                   <p className="text-foreground mb-4">
-                    <strong>This is not a simulation.</strong> You'll be working with real DeFi concepts, 
-                    real financial products, and real returns—all in a safe, guided environment.
+                    <strong>This is a hands-on learning platform.</strong> You'll be working with real money, 
+                    real DeFi protocols, and real transactions—all while learning cryptocurrency fundamentals 
+                    in a controlled environment.
                   </p>
                   <p className="text-muted-foreground">
-                    Through carefully designed lessons, you'll learn how decentralized finance actually works, 
-                    using the same protocols and strategies that professionals use every day.
+                    Your financial advisor has provided you with capital to learn about decentralized finance 
+                    through guided lessons. You'll master crypto processes while generating returns for nonprofits 
+                    you care about.
                   </p>
                 </CardContent>
               </Card>
@@ -110,10 +112,15 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                       <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
                       Limited Exposure
                     </h3>
-                    <p className="text-muted-foreground">
-                      You start with a set amount of demo credits. This keeps your learning risk-free while 
-                      you explore real DeFi operations. Learn without worry.
+                    <p className="text-muted-foreground mb-3">
+                      You start with $1,000 in capital. Your exposure is limited to this initial amount, 
+                      creating a clear boundary for your learning experience.
                     </p>
+                    <div className="space-y-2 text-sm text-muted-foreground pl-4 border-l-2 border-muted">
+                      <p><strong>Worst case:</strong> You could lose the full $1,000 and report a capital loss</p>
+                      <p><strong>Middle ground:</strong> Break even with a $1,000 donation to charity</p>
+                      <p><strong>Best case:</strong> Generate returns and donate more than your initial $1,000</p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -155,7 +162,8 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
               <Card>
                 <CardContent className="p-6">
                   <p className="text-foreground mb-4">
-                    <strong>The goal is to complete all the modules.</strong> Each Effect builds on the previous one, 
+                    <strong>The goal is twofold:</strong> Master cryptocurrency processes and see what returns 
+                    you can generate for your chosen nonprofit. Each Effect builds on the previous one, 
                     teaching you increasingly sophisticated DeFi strategies.
                   </p>
                   <div className="space-y-3 text-sm text-muted-foreground">
@@ -169,7 +177,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                     </div>
                     <div className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                      <p>Learn how to use DeFi for real-world impact through donations</p>
+                      <p>Generate returns while learning to use DeFi for real-world impact</p>
                     </div>
                   </div>
                 </CardContent>
@@ -180,7 +188,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                   <p className="text-foreground font-medium mb-2">Ready to Begin?</p>
                   <p className="text-sm text-muted-foreground">
                     After this introduction, you'll select a nonprofit to support, then start working through 
-                    the Effects. Each one teaches a new concept while helping real causes.
+                    the Effects. You'll learn valuable crypto skills while working toward making a meaningful donation.
                   </p>
                 </CardContent>
               </Card>
