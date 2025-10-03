@@ -4,15 +4,26 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { NotificationPanel } from "./notification-panel";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { useKeyless } from "@/contexts/keyless-context";
+import { shortAptosAddress } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { portfolio } = usePortfolio();
+  const { aptosAddress, isAuthenticated, login, logout, loading } = useKeyless();
 
   const hasNotifications = portfolio && (
     (portfolio.healthFactor && portfolio.healthFactor < 1.25) ||
     (portfolio.healthFactor && portfolio.healthFactor > 1.8 && portfolio.apt > 0)
   );
+
+  const formattedAddress = shortAptosAddress(aptosAddress);
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40 shadow-sm">
@@ -27,7 +38,7 @@ export function Header() {
             <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted text-sm">
               <CheckCircle className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground font-medium">
-                Effects completed: <span data-testid="effects-count">{portfolio?.effectsCompleted || 0}</span>
+                Journeys completed: <span data-testid="effects-count">{portfolio?.effectsCompleted || 0}</span>
               </span>
             </div>
             
@@ -55,11 +66,41 @@ export function Header() {
               />
             </div>
             
-            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted">
-              <User className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground hidden sm:inline" data-testid="demo-user">
-                Demo User
-              </span>
+            <div className="flex items-center">
+              {!isAuthenticated ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={login}
+                  disabled={loading}
+                >
+                  Sign in with Google
+                </Button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted"
+                    >
+                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground hidden sm:inline" data-testid="aptos-address">
+                        {formattedAddress}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        logout();
+                      }}
+                    >
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>

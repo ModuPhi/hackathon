@@ -1,0 +1,164 @@
+<spec version="1.0.0" id="spec.1.0.0" owner="Wayne" title="Phase 1 — Auth0 + Aptos Keyless (no portfolio changes)">
+  <summary>
+    Implement federated login with Auth0 and derive an Aptos Keyless account for the signed-in user. Expose the signer and an Aptos TS SDK client through an app-wide provider so any Journey can use them later. Do not modify the mock portfolio logic or any transfers in this phase.
+  </summary>
+
+  <context>
+    <product_position>
+      Aptos-first. Users authenticate with Auth0. The in-app wallet is an Aptos Keyless account derived from that login. Tenants will later pre-fund a firm vault on-chain. Journeys replace the word “Effects” in the UI. Donation and other transactions will move on-chain in later phases.
+    </product_position>
+
+    <answers_to_codex_review_high_level>
+      <custody_keys>Users hold keys via Aptos Keyless tied to Auth0 identity. No advisor-controlled keys in MVP.</custody_keys>
+      <real_money_source>Tenant pre-funds on-chain USDC into a firm vault in a later phase. No ACH or off-chain rails in app.</real_money_source>
+      <protocol_scope>Aptos only for MVP. Swap via Kana later. Lending via an Aptos money market later. Keep adapter boundary clean.</protocol_scope>
+      <vocabulary>Use “Journeys” not “Effects”. Portfolio cards read Cash Available, Invested Assets, Commitments, Donated to Causes.</vocabulary>
+    </answers_to_codex_review_high_level>
+
+    <phases_overview>
+      <phase index="1">Auth0 login + Aptos Keyless account derivation + provider injection (this spec)</phase>
+      <phase index="2">Dynamic Journey serving via manifest and dynamic import. Track starts and completes.</phase>
+      <phase index="3">Aptos Move modules for tenant vault and nonprofit registry. Live on-chain donation path.</phase>
+      <phase index="4">Adapters for swap and lending. Cards execute transactions behind flags.</phase>
+    </phases_overview>
+
+    <reference_impl>
+      Use the Aptos Keyless example as a reference for the cryptographic flow. Adapt from Google OIDC in the example to Auth0 OIDC for our app:
+      https://github.com/aptos-labs/aptos-keyless-example/tree/main/examples/keyless-example
+    </reference_impl>
+  </context>
+
+  <scope>
+    <in>
+      <item>Auth0 OIDC login flow in the client</item>
+      <item>Server validation of Auth0 ID token</item>
+      <item>Derive or look up the Aptos Keyless account for the user</item>
+      <item>Create a runtime provider that exposes { user, tenant, aptosAddress, signTransaction, signMessage, aptosClient }</item>
+      <item>Display the derived Aptos address in the header user menu</item>
+      <item>Basic session handling and logout</item>
+    </in>
+    <out>
+      <item>No changes to mock portfolio data or math</item>
+      <item>No on-chain vault or donation calls in this phase</item>
+      <item>No multi-tenant branding work in this phase</item>
+      <item>No swaps or lending</item>
+    </out>
+  </scope>
+
+  <deliverables>
+    <client>
+      <item>Auth screen and login button integrated with Auth0 Universal Login</item>
+      <item>App-level KeylessProvider that holds signer and Aptos client in memory only</item>
+      <item>Header shows short Aptos address (e.g., 0x1234…abcd) when logged in, and “Sign in” when not</item>
+      <item>“Journeys” label replaces “Effects” in visible text</item>
+    </client>
+    <server>
+      <item>OIDC token validation endpoint for Auth0 callback</item>
+      <item>User-store row mapping { auth0_sub, tenant_id, aptos_address, created_at }</item>
+      <item>Session cookie issuance and renewal</item>
+    </server>
+    <docs>
+      <item>ENV.sample with Auth0 and Aptos config</item>
+      <item>KEYLESS_NOTES.md describing the flow and guarantees</item>
+    </docs>
+  </deliverables>
+
+  <implementation>
+    <auth0>
+      <client_side>
+        <step>Integrate Auth0 Universal Login. After success, the client holds an Auth0 ID token.</step>
+        <step>POST the ID token to the server callback endpoint for validation and keyless bootstrap.</step>
+      </client_side>
+      <server_side>
+        <step>Validate ID token signature and audience against Auth0 domain and client id.</step>
+        <step>Find or create a user record keyed by auth0_sub. Associate tenant_id via a simple default for now.</step>
+      </server_side>
+    </auth0>
+
+    <keyless_flow>
+      <goal>Derive an Aptos Keyless account for the authenticated user using the reference example flow. Persist mapping. Do not persist any private key material.</goal>
+      <steps>
+        <step>From the validated Auth0 identity, derive or look up the user’s Aptos address. Follow the reference example’s pattern for constructing the keyless account from OIDC attestation.</step>
+        <step>Create lightweight server helpers to produce signing payloads if the flow requires server participation. Otherwise keep a pure client signer that uses the attestation.</step>
+        <step>Return { aptosAddress, network } to the client and set a session cookie.</step>
+      </steps>
+      <runtime_provider>
+        <item>Create a KeylessProvider at the app root that holds: user, tenant, aptosAddress, signTransaction, signMessage, aptosClient</item>
+        <item>aptosClient: instantiate with network from ENV (testnet for now). No per-journey instantiation.</item>
+        <item>Keep signer in memory only. Do not store in localStorage or IndexedDB.</item>
+      </runtime_provider>
+    </keyless_flow>
+
+    <ui_touchpoints>
+      <item>Header: show “Sign in” when logged out. After login show short aptosAddress, user menu, and a “Sign out”.</item>
+      <item>Replace “Effects” labels with “Journeys” in visible copy only. Do not refactor component names right now.</item>
+      <item>No changes to portfolio cards or math.</item>
+    </ui_touchpoints>
+
+    <api_endpoints>
+      <endpoint method="POST" path="/api/auth/callback">Body: { id_token }. Validates token, bootstraps or looks up keyless address, creates session, returns { aptosAddress, user, tenant }.</endpoint>
+      <endpoint method="GET" path="/api/session/me">Returns { user, tenant, aptosAddress } for the current session.</endpoint>
+      <endpoint method="POST" path="/api/session/logout">Clears session.</endpoint>
+    </api_endpoints>
+
+    <env>
+      <vars>
+        <var>AUTH0_DOMAIN</var>
+        <var>AUTH0_CLIENT_ID</var>
+        <var>AUTH0_AUDIENCE (if applicable)</var>
+        <var>AUTH0_ISSUER_BASE_URL</var>
+        <var>APP_BASE_URL</var>
+        <var>APTOS_NETWORK (testnet|devnet|mainnet)</var>
+        <var>APTOS_REST_URL (override optional)</var>
+      </vars>
+    </env>
+
+    <telemetry>
+      <item>Log auth success and failure counts.</item>
+      <item>Log derived aptosAddress for the session (hash in logs, do not log full user profile).</item>
+    </telemetry>
+
+    <security>
+      <item>Validate Auth0 tokens server-side using the JWKS endpoint. Reject if expired or wrong audience.</item>
+      <item>Set secure, httpOnly session cookie.</item>
+      <item>Signer remains in memory. No persistent storage of private material.</item>
+    </security>
+  </implementation>
+
+  <acceptance>
+    <user_flow>
+      <step>User clicks Sign in. Auth0 login completes. The app shows the short Aptos address in the header.</step>
+      <step>Refreshing the app keeps the session. /api/session/me returns the same aptosAddress.</step>
+      <step>Sign out clears session and removes the address from the header.</step>
+      <step>No changes in portfolio values or receipts across this phase.</step>
+    </user_flow>
+    <tech_checks>
+      <item>Unit tests cover ID token validation happy path and rejection cases.</item>
+      <item>Manual test confirms the derived address format is a valid Aptos account address.</item>
+      <item>Signer exports signTransaction and signMessage functions that return deterministic signatures for a fixed dummy payload.</item>
+    </tech_checks>
+  </acceptance>
+
+  <non_goals>
+    <item>No vault Move modules in this spec</item>
+    <item>No donation execution in this spec</item>
+    <item>No swap or lending in this spec</item>
+    <item>No multi-tenant theming beyond a default tenant row</item>
+  </non_goals>
+
+  <risks>
+    <item>Auth0 callback routing collisions with existing client routes. Mitigation: reserve /auth/callback path and handle in the server.</item>
+    <item>Time sink in adapting the keyless example from Google to Auth0. Mitigation: keep a narrow path that only proves address derivation and signer readiness.</item>
+  </risks>
+
+  <handoff>
+    <artifacts>
+      <item>PR with Auth0 integration, KeylessProvider, and header address display</item>
+      <item>ENV.sample updated and README quickstart for Auth0 setup</item>
+      <item>KEYLESS_NOTES.md describing the derivation and what is in memory</item>
+    </artifacts>
+    <next_phase_pointer>
+      After merge, Phase 2 will add the manifest and dynamic import to serve Journeys, and basic run tracking. No change to signer or address handling in Phase 2.
+    </next_phase_pointer>
+  </handoff>
+</spec>

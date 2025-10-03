@@ -81,9 +81,9 @@ export default function PortfolioDashboard() {
           <BalanceCards />
         </section>
 
-        {/* Effects Board */}
+        {/* Journeys Board */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Choose an Effect</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Choose a Journey</h2>
           <EffectsBoard
             onStartIntro={handleStartIntro}
             onStartEffectA={handleStartEffectA}

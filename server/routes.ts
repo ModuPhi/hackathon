@@ -5,7 +5,6 @@ import { insertPortfolioSchema, insertReceiptSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
   // Get or create demo user and portfolio
   app.get("/api/portfolio", async (req, res) => {
     try {

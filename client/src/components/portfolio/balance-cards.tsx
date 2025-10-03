@@ -105,7 +105,7 @@ export function BalanceCards() {
         label="Cash Available"
         caption="Ready to allocate"
         value={cashAvailable}
-        popoverText="This is the portion of your credits you have not used yet. You can start a new Effect or donate directly from here."
+        popoverText="This is the portion of your credits you have not used yet. You can start a new Journey or donate directly from here."
         testId="cash-available"
       />
       

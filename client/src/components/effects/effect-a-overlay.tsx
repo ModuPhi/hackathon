@@ -204,7 +204,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Portfolio</span>
                 <ChevronRight className="w-4 h-4" />
-                <span className="text-foreground font-medium">Effect A</span>
+                <span className="text-foreground font-medium">Journey A</span>
               </div>
               <Button
                 variant="ghost"
@@ -230,7 +230,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                   How much do you want to allocate?
                 </h2>
                 <p className="text-muted-foreground mb-6">
-                  Choose the amount of credits you want to use for Effect A. This will be converted to USDC, then swapped to APT for the donation strategy.
+                  Choose the amount of credits you want to use for Journey A. This will be converted to USDC, then swapped to APT for the donation strategy.
                 </p>
                 
                 <div className="mb-6">

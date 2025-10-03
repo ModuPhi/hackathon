@@ -37,7 +37,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
       variant={isEffectAComplete ? "outline" : "default"}
       data-testid="start-effect-a-btn"
     >
-      {isEffectAComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Effect A'}
+      {isEffectAComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Journey A'}
     </Button>
   );
 
@@ -49,7 +49,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
       variant={isEffectBComplete ? "outline" : "default"}
       data-testid="start-effect-b-btn"
     >
-      {isEffectBComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Effect B'}
+      {isEffectBComplete ? 'Completed ✓' : !canStartEffects ? getDisabledMessage() : 'Start Journey B'}
     </Button>
   );
 
@@ -66,7 +66,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
 
   return (
     <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
-      {/* Intro Effect */}
+      {/* Intro Journey */}
       <Card className={isIntroComplete ? 'bg-success/5 border-success' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
@@ -91,7 +91,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
         </CardContent>
       </Card>
 
-      {/* Effect B - Aptos (Beginner) */}
+      {/* Journey B - Aptos (Beginner) */}
       <Card className={isEffectBComplete ? 'bg-success/5 border-success' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
@@ -120,7 +120,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
         </CardContent>
       </Card>
 
-      {/* Effect A - Aave (Intermediate) */}
+      {/* Journey A - Aave (Intermediate) */}
       <Card className={isEffectAComplete ? 'bg-success/5 border-success' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">

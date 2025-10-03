@@ -107,7 +107,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                       Organized in Lessons
                     </h3>
                     <p className="text-muted-foreground">
-                      Each "Effect" is a complete lesson teaching one DeFi concept. You'll work through them 
+                      Each "Journey" is a complete lesson teaching one DeFi concept. You'll work through them 
                       step-by-step, building your knowledge progressively.
                     </p>
                   </CardContent>
@@ -170,7 +170,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                 <CardContent className="p-6">
                   <p className="text-foreground mb-4">
                     <strong>The goal is twofold:</strong> Master cryptocurrency processes and see what returns 
-                    you can generate for your chosen nonprofit. Each Effect builds on the previous one, 
+                    you can generate for your chosen nonprofit. Each Journey builds on the previous one, 
                     teaching you increasingly sophisticated DeFi strategies.
                   </p>
                   <div className="space-y-3 text-sm text-muted-foreground">
@@ -195,7 +195,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                   <p className="text-foreground font-medium mb-2">Ready to Begin?</p>
                   <p className="text-sm text-muted-foreground">
                     After this introduction, you'll select a nonprofit to support, then start working through 
-                    the Effects. You'll learn valuable crypto skills while working toward making a meaningful donation.
+                    the Journeys. You'll learn valuable crypto skills while working toward making a meaningful donation.
                   </p>
                 </CardContent>
               </Card>
@@ -230,7 +230,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                   </p>
                   <ol className="text-left text-sm text-muted-foreground space-y-2 list-decimal list-inside">
                     <li>Choose a nonprofit organization to support</li>
-                    <li>Start with the beginner Effect to learn the basics</li>
+                    <li>Start with the beginner Journey to learn the basics</li>
                     <li>Progress through each lesson at your own pace</li>
                     <li>Make a real impact while learning valuable skills</li>
                   </ol>

@@ -20,7 +20,7 @@ export function EffectBOverlay({ isOpen, onClose }: EffectBOverlayProps) {
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Portfolio</span>
                 <ChevronRight className="w-4 h-4" />
-                <span className="text-foreground font-medium">Effect B</span>
+                <span className="text-foreground font-medium">Journey B</span>
               </div>
               <Button
                 variant="ghost"

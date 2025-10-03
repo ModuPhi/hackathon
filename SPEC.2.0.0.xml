@@ -1,0 +1,117 @@
+<spec version="2.0.0" id="spec.2.0.0" owner="Wayne" title="Phase 2 — Dynamic Journeys (JSON manifest, no iframes)">
+  <summary>
+    Make Journeys dynamic: the dashboard loads a manifest, starts Journeys via dynamic import (same-origin), injects runtime context (Google→Aptos Keyless signer and Aptos client), and tracks start/complete. No portfolio math changes. No on-chain wiring yet.
+  </summary>
+
+  <scope>
+    <in>
+      <item>JSON-backed journey manifest and /api/journeys endpoint</item>
+      <item>Dynamic import loader that renders a Journey component by importPath</item>
+      <item>Dependency injection: { auth, keyless { address, signMessage, signTransaction }, aptosClient, capabilities, telemetry }</item>
+      <item>Run tracking endpoints and in-memory store</item>
+      <item>Dashboard uses manifest to render Journey cards</item>
+    </in>
+    <out>
+      <item>No DB migrations; no CMS; no iframes</item>
+      <item>No portfolio math or receipts changes</item>
+      <item>No chain transactions (swap/lend/donate) in this phase</item>
+    </out>
+  </scope>
+
+  <deliverables>
+    <server>
+      <item>journeys.json in repo root or server/data/</item>
+      <item>GET /api/journeys → returns the JSON manifest verbatim</item>
+      <item>POST /api/journey-runs/start → { slug } → stores run with user/tenant, started_at</item>
+      <item>POST /api/journey-runs/complete → { slug } → marks the last open run as completed_at</item>
+      <item>In-memory store for journey runs; simple repo abstraction for later DB swap</item>
+    </server>
+    <client>
+      <item>Dashboard fetches /api/journeys and renders cards from manifest</item>
+      <item>JourneyLoader that import()s the selected module and renders it as an overlay</item>
+      <item>Injection of context props into Journey component: auth, keyless, aptosClient, capabilities, telemetry</item>
+      <item>Telemetry hooks call the start/complete endpoints</item>
+      <item>“Journeys completed” counter driven by run completions (not local ad-hoc state)</item>
+    </client>
+    <docs>
+      <item>JOURNEYS_MANIFEST.md describing shape and how to add a journey</item>
+    </docs>
+  </deliverables>
+
+  <io_contract>
+    <manifest shape="array">
+      <![CDATA[
+      [
+        { "slug": "lend-and-donate", "title": "Donate now. Let your asset grow", "level": "intermediate", "enabled": true, "importPath": "@/journeys/EffectAOverlay" },
+        { "slug": "buy-and-hold", "title": "Buy and hold", "level": "beginner", "enabled": true, "importPath": "@/journeys/EffectBOverlay" }
+      ]
+      ]]>
+    </manifest>
+    <journey_runs>
+      <start request='POST /api/journey-runs/start {"slug": string}'>
+        <response><![CDATA[{ "id": string, "slug": string, "started_at": iso8601 }]]></response>
+      </start>
+      <complete request='POST /api/journey-runs/complete {"slug": string}'>
+        <response><![CDATA[{ "id": string, "slug": string, "completed_at": iso8601 }]]></response>
+      </complete>
+    </journey_runs>
+    <loader_contract>
+      <component>Journey modules must default-export a React component</component>
+      <props><![CDATA[
+        {
+          isOpen: boolean,
+          onClose: () => void,
+          auth: { userId: string, tenantId: string },
+          keyless: { address: string, signMessage: (msg:string)=>Promise<string>, signTransaction: Function },
+          aptos: { client: AptosClient },
+          capabilities: { portfolio: { merge: (p:any)=>Promise<void> }, receipts: { create: (r:any)=>Promise<void> } },
+          telemetry: { onStart: (slug:string)=>void, onComplete: (slug:string)=>void, onAbort: (slug:string)=>void }
+        }
+      ]]></props>
+    </loader_contract>
+  </io_contract>
+
+  <implementation>
+    <server>
+      <step>Create server/data/journeys.json with the manifest shape above.</step>
+      <step>Add GET /api/journeys to return the JSON file contents with Cache-Control: no-store.</step>
+      <step>Add in-memory journeyRuns repo keyed by { user_id, tenant_id, slug } with started_at, completed_at.</step>
+      <step>Implement POST /api/journey-runs/start and /api/journey-runs/complete using session { user, tenant } from Phase 1.</step>
+    </server>
+    <client>
+      <step>Fetch /api/journeys in the dashboard and render cards per entry (hide if enabled=false).</step>
+      <step>On Start, call telemetry.onStart(slug) then dynamic import: const Mod = (await import(/* @vite-ignore */ importPath)).default;</step>
+      <step>Render & pass props: { isOpen:true, onClose, auth, keyless, aptos: {client}, capabilities, telemetry }.</step>
+      <step>On final screen, call telemetry.onComplete(slug); increment “Journeys completed” from the journey-runs store.</step>
+      <step>Add an error boundary around the dynamic component; on error call telemetry.onAbort(slug) and show a fallback with “Return to Portfolio”.</step>
+    </client>
+  </implementation>
+
+  <acceptance>
+    <tests>
+      <item>GET /api/journeys returns the manifest.</item>
+      <item>Starting a journey creates a run with started_at; completing it sets completed_at.</item>
+      <item>Dashboard lists journeys from manifest; disabled ones are hidden.</item>
+      <item>Starting a journey loads its module via importPath and renders it with injected props.</item>
+      <item>“Journeys completed” reflects the count of completed runs after refresh.</item>
+      <item>Signer remains memory-only; no persistence of keyless material.</item>
+    </tests>
+  </acceptance>
+
+  <non_goals>
+    <item>No DB/CMS; no per-tenant visibility rules in this phase.</item>
+    <item>No protocol calls; no changes to mock balances/receipts.</item>
+    <item>No iframe-based rendering.</item>
+  </non_goals>
+
+  <risks>
+    <item>Bad importPath in manifest → add a user-friendly error and onClose fallback.</item>
+    <item>Accidental SDK usage inside journey modules → lint note and code review check; journeys should rely on injected props.</item>
+  </risks>
+
+  <handoff>
+    <next_phase_pointer>
+      Phase 3 will add Aptos Move modules for TenantVault and NonprofitRegistry and wire the donation step to a real testnet transaction, keeping swap/lend behind flags.
+    </next_phase_pointer>
+  </handoff>
+</spec>
