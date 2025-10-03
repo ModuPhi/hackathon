@@ -19,6 +19,7 @@ export const portfolios = pgTable("portfolios", {
   healthFactor: real("health_factor"),
   selectedCause: text("selected_cause"),
   selectedNonprofits: json("selected_nonprofits").$type<string[]>().default(sql`'[]'::json`),
+  completedEffects: json("completed_effects").$type<string[]>().default(sql`'[]'::json`),
   effectsCompleted: integer("effects_completed").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

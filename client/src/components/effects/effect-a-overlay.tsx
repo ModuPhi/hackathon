@@ -121,10 +121,18 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
     
     const selectedNonprofit = nonprofits.find(np => portfolio.selectedNonprofits?.[0] === np.id);
     
-    await updatePortfolio({
+    const completedEffects = portfolio.completedEffects || [];
+    const updateData: any = {
       usdc: portfolio.usdc - donationAmount,
-      effectsCompleted: portfolio.effectsCompleted + 1
-    });
+    };
+    
+    // Only increment if this effect hasn't been completed before
+    if (!completedEffects.includes('effect-a')) {
+      updateData.completedEffects = [...completedEffects, 'effect-a'];
+      updateData.effectsCompleted = portfolio.effectsCompleted + 1;
+    }
+    
+    await updatePortfolio(updateData);
     
     await createReceipt({
       type: "Donation",

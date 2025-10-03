@@ -5,15 +5,21 @@ import { CauseSelector } from "@/components/portfolio/cause-selector";
 import { SelectedNonprofits } from "@/components/portfolio/selected-nonprofits";
 import { EffectsBoard } from "@/components/portfolio/effects-board";
 import { ReceiptsTimeline } from "@/components/portfolio/receipts-timeline";
+import { IntroEffectOverlay } from "@/components/effects/intro-effect-overlay";
 import { EffectAOverlay } from "@/components/effects/effect-a-overlay";
 import { EffectBOverlay } from "@/components/effects/effect-b-overlay";
 import { usePortfolio } from "@/hooks/use-portfolio";
 
 export default function PortfolioDashboard() {
+  const [introOverlayOpen, setIntroOverlayOpen] = useState(false);
   const [effectAOverlayOpen, setEffectAOverlayOpen] = useState(false);
   const [effectBOverlayOpen, setEffectBOverlayOpen] = useState(false);
   
   const { isLoading } = usePortfolio();
+
+  const handleStartIntro = () => {
+    setIntroOverlayOpen(true);
+  };
 
   const handleStartEffectA = () => {
     setEffectAOverlayOpen(true);
@@ -68,6 +74,7 @@ export default function PortfolioDashboard() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4">Choose an Effect</h2>
           <EffectsBoard
+            onStartIntro={handleStartIntro}
             onStartEffectA={handleStartEffectA}
             onStartEffectB={handleStartEffectB}
           />
@@ -81,6 +88,11 @@ export default function PortfolioDashboard() {
       </main>
 
       {/* Effect Overlays */}
+      <IntroEffectOverlay
+        isOpen={introOverlayOpen}
+        onClose={() => setIntroOverlayOpen(false)}
+      />
+
       <EffectAOverlay
         isOpen={effectAOverlayOpen}
         onClose={() => setEffectAOverlayOpen(false)}
