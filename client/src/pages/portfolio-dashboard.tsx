@@ -60,16 +60,6 @@ export default function PortfolioDashboard() {
           <BalanceCards />
         </section>
 
-        {/* Cause Selection */}
-        <section className="mb-8">
-          <CauseSelector />
-        </section>
-
-        {/* Selected Nonprofits */}
-        <section className="mb-8">
-          <SelectedNonprofits />
-        </section>
-
         {/* Effects Board */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4">Choose an Effect</h2>
@@ -80,10 +70,29 @@ export default function PortfolioDashboard() {
           />
         </section>
 
-        {/* Receipts Timeline */}
+        {/* Cause Selection */}
+        <section className="mb-6">
+          <CauseSelector />
+        </section>
+
+        {/* Selected Nonprofit & Donation Receipts */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Transaction Receipts</h2>
-          <ReceiptsTimeline />
+          <h2 className="text-2xl font-bold text-foreground mb-2">This is who you're playing for</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            See this as a challenge to maximize returns for your chosen nonprofit. Every strategy you learn can help make a bigger impact.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Left: Selected Nonprofit Card (1/3) */}
+            <div className="md:col-span-1">
+              <SelectedNonprofits />
+            </div>
+            
+            {/* Right: Donation Receipts (2/3) */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Donation Receipts</h3>
+              <ReceiptsTimeline />
+            </div>
+          </div>
         </section>
       </main>
 
