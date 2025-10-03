@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import aptosLogo from "@assets/Aptos_Primary_BLK_1759458032595.png";
+import aaveLogo from "@assets/aave_1759458032595.png";
 
 interface EffectsBoardProps {
   onStartEffectA: () => void;
@@ -42,9 +44,12 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
       <Card>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
-            <div>
+            <div className="flex-1">
               <h3 className="text-lg font-semibold text-foreground">Buy Your First Token</h3>
-              <p className="text-xs text-muted-foreground mt-1">Powered by Aptos</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">Powered by</span>
+                <img src={aptosLogo} alt="Aptos" className="h-4" data-testid="aptos-logo" />
+              </div>
             </div>
             <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
               Beginner
@@ -77,9 +82,12 @@ export function EffectsBoard({ onStartEffectA, onStartEffectB }: EffectsBoardPro
       <Card>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
-            <div>
+            <div className="flex-1">
               <h3 className="text-lg font-semibold text-foreground">Collateralized Borrowing</h3>
-              <p className="text-xs text-muted-foreground mt-1">Powered by Aave</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">Powered by</span>
+                <img src={aaveLogo} alt="Aave" className="h-4" data-testid="aave-logo" />
+              </div>
             </div>
             <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20">
               Intermediate
