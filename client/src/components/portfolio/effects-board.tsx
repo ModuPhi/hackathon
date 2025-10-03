@@ -72,7 +72,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-foreground">
-                Welcome to DeFi Giving
+                Welcome & Getting Started
               </h3>
             </div>
             <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
@@ -84,7 +84,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
             Start your learning journey
           </p>
           <p className="text-sm text-muted-foreground mb-6">
-            Learn what DeFi Giving is, how this platform works, and what you'll accomplish through the Effects.
+            Learn about this crypto education platform, how it works, and what you'll accomplish through the lessons.
           </p>
           
           {introButton}

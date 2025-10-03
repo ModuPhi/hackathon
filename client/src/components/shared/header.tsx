@@ -18,15 +18,9 @@ export function Header() {
     <header className="bg-card border-b border-border sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">DeFi Giving</h1>
-            <Badge 
-              variant="secondary" 
-              className="hidden sm:inline-flex bg-muted text-muted-foreground border-border"
-              data-testid="mock-mode-badge"
-            >
-              Mock Mode
-            </Badge>
+          <div className="flex flex-col">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Meridian Wealth Partners</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Crypto Education Portal</p>
           </div>
           
           <div className="flex items-center space-x-3 sm:space-x-4">
