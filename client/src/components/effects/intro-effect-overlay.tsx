@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useToast } from "@/hooks/use-toast";
 import { Check, BookOpen, TrendingUp, Target } from "lucide-react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface IntroEffectOverlayProps {
   isOpen: boolean;
@@ -49,6 +50,12 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        <VisuallyHidden>
+          <DialogTitle>DeFi Giving Introduction</DialogTitle>
+          <DialogDescription>
+            Learn about the DeFi Giving platform and how to use it to master cryptocurrency concepts while supporting nonprofits
+          </DialogDescription>
+        </VisuallyHidden>
         <div className="p-6 sm:p-8">
           {/* Welcome Screen */}
           {currentScreen === 'welcome' && (
