@@ -9,10 +9,10 @@ export function calculateEffectASteps(allocatedAmount: number): EffectAData {
   const slippage = usdcReceived * 0.003;
   const aptReceived = usdcReceived - slippage;
 
-  // Step 3: Supply and borrow (default 80%)
-  const borrowPercent = 80;
+  // Step 3: Supply and borrow (default 40% - conservative start)
+  const borrowPercent = 40;
   const borrowed = aptReceived * (borrowPercent / 100);
-  const healthFactor = 1.7; // For 80% borrow
+  const healthFactor = 1.75; // For 40% borrow (safe buffer)
 
   return {
     allocatedAmount,
@@ -26,17 +26,13 @@ export function calculateEffectASteps(allocatedAmount: number): EffectAData {
 export function calculateBorrowMetrics(aptValue: number, borrowPercent: number) {
   const borrowed = aptValue * (borrowPercent / 100);
   
-  // Health factor calculation
-  let healthFactor;
-  if (borrowPercent === 60) {
-    healthFactor = 2.0;
-  } else if (borrowPercent === 80) {
-    healthFactor = 1.7;
-  } else if (borrowPercent === 90) {
-    healthFactor = 1.25;
-  } else {
-    healthFactor = 2.5 - (borrowPercent / 100) * 1.25;
-  }
+  // Health factor calculation (max LTV is 80%)
+  // Formula: healthFactor = 2.5 - (borrowPercent / 100) * 1.875
+  // At 0%: healthFactor = 2.5
+  // At 40%: healthFactor = 1.75 (safe)
+  // At 60%: healthFactor = 1.375 (moderate)
+  // At 80%: healthFactor = 1.0 (at liquidation threshold)
+  const healthFactor = 2.5 - (borrowPercent / 100) * 1.875;
 
   // Determine safety level
   let safetyLevel: 'safe' | 'moderate' | 'danger';
@@ -45,15 +41,15 @@ export function calculateBorrowMetrics(aptValue: number, borrowPercent: number) 
 
   if (healthFactor >= 1.5) {
     safetyLevel = 'safe';
-    safetyMessage = 'Safe buffer';
+    safetyMessage = 'Safe buffer - well protected from liquidation';
     safetyColor = 'hsl(142, 71%, 45%)';
-  } else if (healthFactor >= 1.25) {
+  } else if (healthFactor >= 1.2) {
     safetyLevel = 'moderate';
-    safetyMessage = 'Moderate buffer';
+    safetyMessage = 'Moderate buffer - consider lowering LTV for safety';
     safetyColor = 'hsl(38, 92%, 50%)';
   } else {
     safetyLevel = 'danger';
-    safetyMessage = 'Choose a lower borrow to stay safe.';
+    safetyMessage = 'High risk - very close to liquidation threshold';
     safetyColor = 'hsl(0, 72%, 51%)';
   }
 
