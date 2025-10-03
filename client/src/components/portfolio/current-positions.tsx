@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { formatNumber } from "@/lib/portfolio-calculations";
 
 export function CurrentPositions() {
   const { portfolio } = usePortfolio();
@@ -62,13 +63,13 @@ export function CurrentPositions() {
               <TableRow key={position.asset} data-testid={position.testId}>
                 <TableCell className="font-medium">{position.asset}</TableCell>
                 <TableCell className="text-right" data-testid={`${position.testId}-balance`}>
-                  ${position.balance.toFixed(2)}
+                  {formatNumber(position.balance)}
                 </TableCell>
                 <TableCell 
                   className={`text-right ${position.obligations > 0 ? 'text-orange-600 font-medium' : 'text-muted-foreground'}`}
                   data-testid={`${position.testId}-obligations`}
                 >
-                  {position.obligations > 0 ? `$${position.obligations.toFixed(2)}` : '—'}
+                  {position.obligations > 0 ? formatNumber(position.obligations) : '—'}
                 </TableCell>
               </TableRow>
             ))}
