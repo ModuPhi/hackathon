@@ -483,15 +483,15 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                         </div>
                         <Slider
                           value={[borrowPercent]}
-                          onValueChange={(value) => setBorrowPercent(value[0])}
-                          max={80}
+                          onValueChange={(value) => setBorrowPercent(Math.min(value[0], 80))}
+                          max={100}
                           min={0}
                           step={5}
                           className="mb-2"
                           data-testid="borrow-slider"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Maximum: 80% (Aave's safety limit)
+                          Maximum: 80% — The last 20% shows you can't borrow your full collateral value
                         </p>
                       </div>
                       
