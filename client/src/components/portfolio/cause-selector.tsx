@@ -96,20 +96,19 @@ export function CauseSelector() {
                       alt={nonprofit.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-2 left-2 flex items-center space-x-2">
+                    <div 
+                      className="absolute top-2 left-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDisabled) handleToggle(nonprofit.id);
+                      }}
+                    >
                       <Checkbox
                         checked={isSelected}
                         disabled={isDisabled}
-                        onCheckedChange={() => handleToggle(nonprofit.id)}
                         className="bg-white border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         data-testid={`checkbox-${nonprofit.id}`}
                       />
-                      {nonprofit.verified === 1 && (
-                        <Badge variant="secondary" className="bg-white/90 text-xs">
-                          <CheckCircle className="w-3 h-3 mr-1 text-primary" />
-                          Verified
-                        </Badge>
-                      )}
                     </div>
                   </div>
                   
