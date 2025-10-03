@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { CheckCircle, ChevronRight, Check } from "lucide-react";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { CancelConfirmDialog } from "@/components/shared/cancel-confirm-dialog";
 import { calculateEffectASteps, calculateBorrowMetrics, formatNumber } from "@/lib/portfolio-calculations";
 import { useToast } from "@/hooks/use-toast";
+import aaveLogo from "@assets/aave_1759458032595.png";
 
 interface EffectAOverlayProps {
   isOpen: boolean;
@@ -434,13 +436,40 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
           {/* Step 3: Supply and Borrow */}
           {currentStep === 'step3' && (
             <div data-testid="effect-a-step-3">
+              {/* Aave Branding Header */}
+              <div className="mb-6 p-6 bg-card border border-border rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <img src={aaveLogo} alt="Aave" className="h-6" />
+                  <h2 className="text-2xl font-bold text-foreground">Collateralized Lending with Aave</h2>
+                </div>
+                <p className="text-muted-foreground">
+                  Learn how Aave's lending protocol lets you unlock the value of your crypto assets without selling them. 
+                  Supply your APT as collateral and borrow USDC instantly—all while keeping your potential gains.
+                </p>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 <Card>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-foreground mb-3">Supply and borrow</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Supplying APT makes it collateral. You can borrow USDC against it while keeping APT exposure. Health factor describes your safety buffer.
-                    </p>
+                    <h3 className="text-xl font-semibold text-foreground mb-3">How Aave Lending Works</h3>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p>
+                        <strong className="text-foreground">Supply as Collateral:</strong> Your APT tokens are deposited into Aave's protocol, 
+                        serving as security for your loan. You still own them and benefit if the price rises.
+                      </p>
+                      <p>
+                        <strong className="text-foreground">Borrow Against Value:</strong> Aave lets you borrow up to 80% of your collateral's value. 
+                        This is called your loan-to-value (LTV) ratio. The 80% limit protects both you and the protocol from market volatility.
+                      </p>
+                      <p>
+                        <strong className="text-foreground">Health Factor Protection:</strong> This number shows how safe your loan is. 
+                        Above 1.0 means you're safe. If it drops below 1.0, your collateral could be liquidated to repay the loan. 
+                        Higher percentages mean a lower health factor and more risk.
+                      </p>
+                      <p className="text-xs pt-2 border-t border-border">
+                        💡 <strong>Aave Tip:</strong> Start conservatively. You can always borrow more later, but it's better to maintain a healthy buffer against price swings.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
                 
@@ -448,47 +477,37 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-sm font-medium text-foreground mb-2">Target borrow percent</Label>
-                        <div className="flex items-center space-x-2 mb-2">
-                          {[60, 80, 90].map((percent) => (
-                            <Button
-                              key={percent}
-                              variant={borrowPercent === percent ? "default" : "secondary"}
-                              size="sm"
-                              onClick={() => setBorrowPercent(percent)}
-                              className="px-3 py-1 text-sm"
-                              data-testid={`borrow-chip-${percent}`}
-                            >
-                              {percent}%
-                            </Button>
-                          ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-medium text-foreground">Choose Your Loan-to-Value (LTV)</Label>
+                          <span className="text-sm font-semibold text-primary">{borrowPercent}%</span>
                         </div>
+                        <Slider
+                          value={[borrowPercent]}
+                          onValueChange={(value) => setBorrowPercent(value[0])}
+                          max={80}
+                          min={0}
+                          step={5}
+                          className="mb-2"
+                          data-testid="borrow-slider"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Maximum: 80% (Aave's safety limit)
+                        </p>
                       </div>
-                      <div>
-                        <Label className="text-sm font-medium text-foreground mb-2">Health factor</Label>
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="text-2xl font-bold" 
+                      
+                      <div className="p-3 bg-muted rounded-md">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">Health Factor</span>
+                          <span 
+                            className="text-lg font-bold" 
                             style={{ color: borrowMetrics.safetyColor }}
                             data-testid="step3-health-value"
                           >
                             {formatNumber(borrowMetrics.healthFactor)}
-                          </div>
-                          <div className="flex-1">
-                            <div className="health-meter">
-                              <div 
-                                className="health-indicator"
-                                style={{ 
-                                  left: `${borrowMetrics.healthFactor >= 1.5 ? 70 : borrowMetrics.healthFactor >= 1.25 ? 30 : 20}%`,
-                                  color: borrowMetrics.safetyColor 
-                                }}
-                                data-testid="step3-health-indicator"
-                              />
-                            </div>
-                          </div>
+                          </span>
                         </div>
                         <p 
-                          className={`text-xs mt-2 ${
+                          className={`text-xs ${
                             borrowMetrics.safetyLevel === 'safe' ? 'text-success' :
                             borrowMetrics.safetyLevel === 'moderate' ? 'text-warning' :
                             'text-destructive'
@@ -498,11 +517,15 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                           {borrowMetrics.safetyMessage}
                         </p>
                       </div>
+
                       <div className="pt-4 border-t border-border">
-                        <Label className="text-sm font-medium text-foreground mb-2">Borrowed USDC</Label>
+                        <Label className="text-sm font-medium text-foreground mb-2">You'll Borrow</Label>
                         <div className="text-2xl font-bold text-primary" data-testid="step3-borrowed">
-                          {formatNumber(borrowMetrics.borrowed)}
+                          {formatNumber(borrowMetrics.borrowed)} USDC
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Based on {borrowPercent}% of your {formatNumber(calculatedData.step2.aptReceived)} USD collateral value
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -513,8 +536,9 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                 <Button
                   onClick={handleStep3Confirm}
                   data-testid="step3-confirm"
+                  size="lg"
                 >
-                  Supply and borrow
+                  Supply APT & Borrow USDC
                 </Button>
               </div>
             </div>
