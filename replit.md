@@ -9,6 +9,20 @@ The application emphasizes plain English explanations over technical jargon, pro
 **Effects are branded educational experiences sponsored by crypto companies:**
 - **Effect B (Beginner)**: "Buy Your First Token" - Powered by Aptos - teaches simple token purchase
 - **Effect A (Intermediate)**: "Collateralized Borrowing" - Powered by Aave - teaches asset-backed lending
+  - Aave-branded educational content throughout the flow
+  - Interactive LTV slider (0-100% visual range, enforced 80% max) with real-time health factor updates
+  - Comprehensive success screen explaining DeFi lending concepts and user accomplishments
+
+**Portfolio Dashboard Features:**
+- **4-Card Summary Row** with info popovers:
+  - Cash Available (credits ready to allocate)
+  - Invested Assets (crypto holdings value)
+  - Commitments (borrowed amounts, muted when zero)
+  - Donated to Causes (cumulative donations, highlighted)
+- Health Factor and technical debt metrics moved out of surface UI for simplicity
+- Each card includes ⓘ icon with plain-English explanations in accessible popovers
+- Smooth 200ms animations on value changes
+- Responsive: 4-column on desktop, 2x2 grid on mobile
 
 **Nonprofit Selection uses Kiva-style card design:**
 - Multi-select up to 3 nonprofits with photos, locations, descriptions, and categories
