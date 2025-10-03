@@ -39,7 +39,7 @@ export class MemStorage implements IStorage {
         name: "Education for All", 
         description: "Providing quality education and school supplies to underserved communities. Supporting teachers and students with resources to build a brighter future.",
         location: "Kenya",
-        imageUrl: "/attached_assets/stock_images/diverse_community_vo_d2a5c659.jpg",
+        imageUrl: "/attached_assets/stock_images/african_children_in__57942581.jpg",
         category: "Education",
         verified: 1 
       },
@@ -48,7 +48,7 @@ export class MemStorage implements IStorage {
         name: "Clean Water Initiative", 
         description: "Building wells and water systems to bring clean, safe drinking water to rural villages. Improving health and quality of life through sustainable water solutions.",
         location: "Uganda",
-        imageUrl: "/attached_assets/stock_images/water_well_clean_dri_a4e26fb9.jpg",
+        imageUrl: "/attached_assets/stock_images/water_well_clean_dri_0866cc79.jpg",
         category: "Water & Sanitation",
         verified: 1 
       },
@@ -57,7 +57,7 @@ export class MemStorage implements IStorage {
         name: "Community Health Partners", 
         description: "Delivering essential healthcare services and medical supplies to remote areas. Training local health workers to serve their communities effectively.",
         location: "Philippines",
-        imageUrl: "/attached_assets/stock_images/medical_clinic_healt_ede4183d.jpg",
+        imageUrl: "/attached_assets/stock_images/medical_clinic_healt_ce9c0787.jpg",
         category: "Healthcare",
         verified: 1 
       },
@@ -66,7 +66,7 @@ export class MemStorage implements IStorage {
         name: "Global Education Fund", 
         description: "Building schools and training teachers in developing regions. Providing scholarships and learning materials to children who lack access to education.",
         location: "Guatemala",
-        imageUrl: "/attached_assets/stock_images/diverse_community_vo_c5b136df.jpg",
+        imageUrl: "/attached_assets/stock_images/guatemala_school_edu_961fd966.jpg",
         category: "Education",
         verified: 1 
       },
@@ -75,7 +75,7 @@ export class MemStorage implements IStorage {
         name: "Rural Medical Access", 
         description: "Operating mobile clinics and health centers in underserved regions. Providing free medical care, vaccinations, and health education to families in need.",
         location: "India",
-        imageUrl: "/attached_assets/stock_images/medical_clinic_healt_14798f04.jpg",
+        imageUrl: "/attached_assets/stock_images/rural_india_medical__9ba7bd82.jpg",
         category: "Healthcare",
         verified: 1 
       },
