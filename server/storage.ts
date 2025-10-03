@@ -110,7 +110,8 @@ export class MemStorage implements IStorage {
       debt: 0.00,
       healthFactor: null,
       selectedCause: null,
-      selectedNonprofits: [],
+      selectedNonprofit: null,
+      completedEffects: [],
       effectsCompleted: 0,
     });
     
@@ -134,7 +135,8 @@ export class MemStorage implements IStorage {
       debt: insertPortfolio.debt ?? 0.00,
       healthFactor: insertPortfolio.healthFactor ?? null,
       selectedCause: insertPortfolio.selectedCause ?? null,
-      selectedNonprofits: (insertPortfolio.selectedNonprofits ?? []) as string[],
+      selectedNonprofit: insertPortfolio.selectedNonprofit ?? null,
+      completedEffects: (insertPortfolio.completedEffects ?? []) as string[],
       effectsCompleted: insertPortfolio.effectsCompleted ?? 0,
       updatedAt: new Date(),
     };

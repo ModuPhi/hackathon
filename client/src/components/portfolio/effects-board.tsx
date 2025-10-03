@@ -15,7 +15,7 @@ interface EffectsBoardProps {
 export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: EffectsBoardProps) {
   const { portfolio } = usePortfolio();
 
-  const canStartEffects = (portfolio?.selectedNonprofits?.length ?? 0) > 0;
+  const canStartEffects = !!portfolio?.selectedNonprofit;
   const completedEffects = portfolio?.completedEffects || [];
   
   const isIntroComplete = completedEffects.includes('intro');

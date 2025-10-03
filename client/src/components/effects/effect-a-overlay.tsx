@@ -119,7 +119,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const handleStep4Confirm = async () => {
     if (!portfolio) return;
     
-    const selectedNonprofit = nonprofits.find(np => portfolio.selectedNonprofits?.[0] === np.id);
+    const selectedNonprofit = nonprofits.find(np => portfolio.selectedNonprofit === np.id);
     
     const completedEffects = portfolio.completedEffects || [];
     const updateData: any = {
@@ -559,7 +559,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                     </p>
                     <div className="flex items-center space-x-2 mt-4">
                       <span className="text-sm font-medium text-foreground" data-testid="step4-cause-name">
-                        {nonprofits.find(np => portfolio?.selectedNonprofits?.[0] === np.id)?.name || 'Selected nonprofit'}
+                        {nonprofits.find(np => portfolio?.selectedNonprofit === np.id)?.name || 'Selected nonprofit'}
                       </span>
                       <CheckCircle className="w-4 h-4 text-primary" />
                     </div>
