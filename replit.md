@@ -6,6 +6,15 @@ DeFi Giving is an educational web application designed to teach users about DeFi
 
 The application emphasizes plain English explanations over technical jargon, providing step-by-step guidance through complex financial operations with immediate visual feedback and clear validation messages.
 
+**Effects are branded educational experiences sponsored by crypto companies:**
+- **Effect B (Beginner)**: "Buy Your First Token" - Powered by Aptos - teaches simple token purchase
+- **Effect A (Intermediate)**: "Collateralized Borrowing" - Powered by Aave - teaches asset-backed lending
+
+**Nonprofit Selection uses Kiva-style card design:**
+- Multi-select up to 3 nonprofits with photos, locations, descriptions, and categories
+- Selected nonprofits display as cards on the portfolio dashboard
+- Effects are enabled once at least one nonprofit is selected
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -65,9 +74,9 @@ The current implementation uses an in-memory storage solution suitable for demo 
 
 **Database Schema (PostgreSQL via Drizzle):**
 - `users` - User authentication and identity
-- `portfolios` - User financial state (credits, USDC, APT, debt, health factor)
+- `portfolios` - User financial state (credits, USDC, APT, debt, health factor) + `selectedNonprofits` JSON array (up to 3 IDs)
 - `receipts` - Transaction history for Effects
-- `nonprofits` - Available charitable organizations
+- `nonprofits` - Available charitable organizations with `description`, `location`, `imageUrl`, `category` fields
 
 **Data Access Patterns:**
 - Repository pattern through `IStorage` interface
