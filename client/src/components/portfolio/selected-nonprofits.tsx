@@ -1,62 +1,62 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, MapPin } from "lucide-react";
+import { CheckCircle, MapPin, Heart } from "lucide-react";
 import { usePortfolio } from "@/hooks/use-portfolio";
 
 export function SelectedNonprofits() {
   const { portfolio, nonprofits } = usePortfolio();
 
-  const selectedNonprofits = nonprofits.filter(np => 
-    portfolio?.selectedNonprofits?.includes(np.id)
-  );
+  const selectedNonprofit = nonprofits.find(np => np.id === portfolio?.selectedNonprofit);
 
-  if (selectedNonprofits.length === 0) {
-    return null;
+  if (!selectedNonprofit) {
+    return (
+      <Card className="border-dashed" data-testid="no-nonprofit-selected">
+        <CardContent className="p-8 text-center">
+          <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
+            Choose a nonprofit to get started
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-lg font-semibold text-foreground">Your Selected Nonprofits</h2>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {selectedNonprofits.map((nonprofit) => (
-          <Card key={nonprofit.id} className="overflow-hidden" data-testid={`selected-nonprofit-${nonprofit.id}`}>
-            <div className="relative h-32 bg-muted">
-              <img
-                src={nonprofit.imageUrl}
-                alt={nonprofit.name}
-                className="w-full h-full object-cover"
-              />
-              {nonprofit.verified === 1 && (
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="bg-white/90 text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1 text-primary" />
-                    Verified
-                  </Badge>
-                </div>
-              )}
-            </div>
-            
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-foreground mb-1 line-clamp-1">
-                {nonprofit.name}
-              </h3>
-              
-              <div className="flex items-center text-xs text-muted-foreground mb-2">
-                <MapPin className="w-3 h-3 mr-1" />
-                {nonprofit.location}
-              </div>
-              
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                {nonprofit.description}
-              </p>
-              
-              <Badge variant="outline" className="text-xs">
-                {nonprofit.category}
-              </Badge>
-            </CardContent>
-          </Card>
-        ))}
+    <Card className="overflow-hidden" data-testid={`selected-nonprofit-${selectedNonprofit.id}`}>
+      <div className="relative h-48 bg-muted">
+        <img
+          src={selectedNonprofit.imageUrl}
+          alt={selectedNonprofit.name}
+          className="w-full h-full object-cover"
+        />
+        {selectedNonprofit.verified === 1 && (
+          <div className="absolute top-3 right-3">
+            <Badge variant="secondary" className="bg-white/90 text-xs">
+              <CheckCircle className="w-3 h-3 mr-1 text-primary" />
+              Verified
+            </Badge>
+          </div>
+        )}
       </div>
-    </div>
+      
+      <CardContent className="p-5">
+        <h3 className="text-lg font-bold text-foreground mb-2">
+          {selectedNonprofit.name}
+        </h3>
+        
+        <div className="flex items-center text-sm text-muted-foreground mb-3">
+          <MapPin className="w-4 h-4 mr-1" />
+          {selectedNonprofit.location}
+        </div>
+        
+        <p className="text-sm text-muted-foreground mb-4">
+          {selectedNonprofit.description}
+        </p>
+        
+        <Badge variant="outline" className="text-xs">
+          {selectedNonprofit.category}
+        </Badge>
+      </CardContent>
+    </Card>
   );
 }
