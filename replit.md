@@ -41,10 +41,22 @@ The application emphasizes plain English explanations over technical jargon, pro
 - Smooth 200ms animations on value changes
 - Responsive: 4-column on desktop, 2x2 grid on mobile
 
-**Nonprofit Selection uses Kiva-style card design:**
-- Multi-select up to 3 nonprofits with photos, locations, descriptions, and categories
-- Selected nonprofits display as cards on the portfolio dashboard
-- Effects are enabled once at least one nonprofit is selected
+**Dashboard Layout (top to bottom):**
+1. Balance Cards section with portfolio summary
+2. Effects Board for choosing educational flows
+3. Nonprofit selection button
+4. Motivational section with heading "This is who you're playing for" and descriptive text framing crypto as a challenge
+5. Grid layout (3 columns on desktop):
+   - Left (1/3): Selected nonprofit card with photo, location, description
+   - Right (2/3): Donation Receipts table showing transaction history
+
+**Nonprofit Selection:**
+- Single-select design (1 nonprofit only, not multiple)
+- Kiva-style card design with photos, locations, descriptions, and categories
+- Dialog shows "Choose a nonprofit to support" with selection interface
+- Selected nonprofit displayed as card on dashboard
+- Button text changes to show selected nonprofit name
+- Effects are enabled once a nonprofit is selected
 
 ## User Preferences
 
@@ -105,8 +117,8 @@ The current implementation uses an in-memory storage solution suitable for demo 
 
 **Database Schema (PostgreSQL via Drizzle):**
 - `users` - User authentication and identity
-- `portfolios` - User financial state (credits, USDC, APT, debt, health factor) + `selectedNonprofits` JSON array (up to 3 IDs) + `completedEffects` JSON array (['intro', 'effect-a', 'effect-b'])
-- `receipts` - Transaction history for Effects
+- `portfolios` - User financial state (credits, USDC, APT, debt, health factor) + `selectedNonprofit` text field (single nonprofit ID) + `completedEffects` JSON array (['intro', 'effect-a', 'effect-b'])
+- `receipts` - Transaction history for Effects (renamed to "Donation Receipts" in UI)
 - `nonprofits` - Available charitable organizations with `description`, `location`, `imageUrl`, `category` fields
 
 **Data Access Patterns:**
