@@ -8,36 +8,27 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 
 export function CauseSelector() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { portfolio, nonprofits, updatePortfolio } = usePortfolio();
 
   useEffect(() => {
-    if (portfolio?.selectedNonprofits) {
-      setSelectedIds(portfolio.selectedNonprofits);
+    if (portfolio?.selectedNonprofit) {
+      setSelectedId(portfolio.selectedNonprofit);
     }
-  }, [portfolio?.selectedNonprofits]);
+  }, [portfolio?.selectedNonprofit]);
 
-  const handleToggle = (nonprofitId: string) => {
-    setSelectedIds(prev => {
-      if (prev.includes(nonprofitId)) {
-        return prev.filter(id => id !== nonprofitId);
-      } else if (prev.length < 3) {
-        return [...prev, nonprofitId];
-      }
-      return prev;
-    });
+  const handleSelect = (nonprofitId: string) => {
+    setSelectedId(nonprofitId === selectedId ? null : nonprofitId);
   };
 
   const handleSave = async () => {
     if (portfolio) {
-      await updatePortfolio({ selectedNonprofits: selectedIds });
+      await updatePortfolio({ selectedNonprofit: selectedId });
       setIsOpen(false);
     }
   };
 
-  const selectedNonprofits = nonprofits.filter(np => 
-    portfolio?.selectedNonprofits?.includes(np.id)
-  );
+  const selectedNonprofit = nonprofits.find(np => np.id === portfolio?.selectedNonprofit);
 
   return (
     <div>
@@ -47,7 +38,7 @@ export function CauseSelector() {
         data-testid="choose-cause-btn"
       >
         <Heart className="w-5 h-5 mr-2" />
-        {selectedNonprofits.length > 0 ? `${selectedNonprofits.length} nonprofit${selectedNonprofits.length > 1 ? 's' : ''} selected` : 'Choose nonprofits'}
+        {selectedNonprofit ? selectedNonprofit.name : 'Choose a nonprofit'}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -55,9 +46,9 @@ export function CauseSelector() {
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-2xl">Choose nonprofits to support</DialogTitle>
+                <DialogTitle className="text-2xl">Choose a nonprofit to support</DialogTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Select up to 3 organizations. {selectedIds.length}/3 selected
+                  Select one organization to work for
                 </p>
               </div>
               <Button
@@ -74,20 +65,17 @@ export function CauseSelector() {
           
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
             {nonprofits.map((nonprofit) => {
-              const isSelected = selectedIds.includes(nonprofit.id);
-              const isDisabled = !isSelected && selectedIds.length >= 3;
+              const isSelected = selectedId === nonprofit.id;
               
               return (
                 <div
                   key={nonprofit.id}
-                  className={`relative border rounded-lg overflow-hidden transition-all ${
+                  className={`relative border rounded-lg overflow-hidden transition-all cursor-pointer ${
                     isSelected 
                       ? 'border-primary shadow-md ring-2 ring-primary ring-opacity-50' 
-                      : isDisabled
-                      ? 'border-border opacity-60 cursor-not-allowed'
-                      : 'border-border hover:border-primary hover:shadow-sm cursor-pointer'
+                      : 'border-border hover:border-primary hover:shadow-sm'
                   }`}
-                  onClick={() => !isDisabled && handleToggle(nonprofit.id)}
+                  onClick={() => handleSelect(nonprofit.id)}
                   data-testid={`nonprofit-card-${nonprofit.id}`}
                 >
                   <div className="relative h-40 bg-muted">
@@ -100,12 +88,11 @@ export function CauseSelector() {
                       className="absolute top-2 left-2"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!isDisabled) handleToggle(nonprofit.id);
+                        handleSelect(nonprofit.id);
                       }}
                     >
                       <Checkbox
                         checked={isSelected}
-                        disabled={isDisabled}
                         className="bg-white border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         data-testid={`checkbox-${nonprofit.id}`}
                       />
@@ -147,10 +134,10 @@ export function CauseSelector() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={selectedIds.length === 0}
+              disabled={!selectedId}
               data-testid="save-cause-btn"
             >
-              Save selection ({selectedIds.length})
+              {selectedId ? 'Save selection' : 'Select a nonprofit'}
             </Button>
           </div>
         </DialogContent>

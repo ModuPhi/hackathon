@@ -18,7 +18,7 @@ export const portfolios = pgTable("portfolios", {
   debt: real("debt").notNull().default(0.00),
   healthFactor: real("health_factor"),
   selectedCause: text("selected_cause"),
-  selectedNonprofits: json("selected_nonprofits").$type<string[]>().default(sql`'[]'::json`),
+  selectedNonprofit: text("selected_nonprofit"),
   completedEffects: json("completed_effects").$type<string[]>().default(sql`'[]'::json`),
   effectsCompleted: integer("effects_completed").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
