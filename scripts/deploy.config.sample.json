@@ -1,0 +1,10 @@
+{
+  "network": "testnet",
+  "tenantAddress": "0x78f69925986ee54e33b935ffff1e3ce5a6410d1a6627647b5cfd411b7161df73",
+  "tenantFaucetAmount": 1000000000,
+  "nonprofits": [
+    { "slug": "education-for-all", "payout": "0xPAYOUT1" },
+    { "slug": "clean-water-initiative", "payout": "0xPAYOUT2" }
+  ],
+  "setLiveFlags": false
+}

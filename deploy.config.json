@@ -1,0 +1,34 @@
+{
+  "network": "testnet",
+  "tenantAddress": "0x78f69925986ee54e33b935ffff1e3ce5a6410d1a6627647b5cfd411b7161df73",
+  "tenantFaucetAmount": 0,
+  "nonprofits": [
+    {
+      "slug": "clean-water-initiative",
+      "payout": "0x4614d6c516af6444eb9fb579ff1bb77ec75c96c7a4d1bf37ab3d057311a804f7"
+    },
+    {
+      "slug": "community-health-partners",
+      "payout": "0xf399f3424eb992d6ebf21ec049ba816b411753df01d609f7009c507cbf5b38ee"
+    },
+    {
+      "slug": "education-for-all",
+      "payout": "0xa8af1806b9edbc4cd91261a8508fbe114b990738794c162e4f76275401651021"
+    },
+    {
+      "slug": "global-education-fund",
+      "payout": "0x9e49945f6efd6c9d34b49ebdd62ea98eed87b21389c64d76c0cc49d5dccf1d14"
+    },
+    {
+      "slug": "rural-medical-access",
+      "payout": "0xffcd37a72088f40ed882aa3ee2b76fff73fd7e26387cd09eab94bab1e570c9a9"
+    },
+    {
+      "slug": "tester2",
+      "payout": "0xcfbdc39b9b3419bb92ad4fcc541415521c472a03a345d6806eb2d92473348036"
+    }
+  ],
+  "setLiveFlags": true,
+  "restUrl": "http://localhost:8080",
+  "faucetUrl": "http://localhost:8081"
+}

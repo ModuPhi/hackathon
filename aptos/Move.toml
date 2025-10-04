@@ -1,0 +1,13 @@
+[package]
+name = "ModuPhi"
+version = "0.1.0"
+authors = ["DeFiGiving"]
+license = "MIT"
+
+[addresses]
+dg_tenant = "0x78f69925986ee54e33b935ffff1e3ce5a6410d1a6627647b5cfd411b7161df73"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "devnet" }
+AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "devnet" }
+MoveStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib", rev = "devnet" }

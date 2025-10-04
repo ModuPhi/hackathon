@@ -1,0 +1,128 @@
+<spec version="3.0.0" id="spec.3.0.0" owner="Wayne" title="Phase 3 — Aptos on-chain donation (Tenant Vault + Nonprofit Registry)">
+  <summary>
+    Add a minimal, real on-chain donation path on Aptos testnet: a tenant omnibus USDC vault and a nonprofit registry in Move, plus a client action that submits a signed transaction to transfer USDC from the tenant vault to an allowlisted nonprofit. Only the donation step goes live; swap/lend remain mocked.
+  </summary>
+
+  <scope>
+    <in>
+      <item>Move modules: TenantVault&lt;USDC&gt;, NonprofitRegistry, DonationReceipt event</item>
+      <item>Server: small utility endpoints for address book and tx relay (optional)</item>
+      <item>Client: wire the Journey “Donate now” step to submit a real Aptos tx using the Keyless signer</item>
+      <item>Persist tx hash in app receipts and display in the timeline</item>
+    </in>
+    <out>
+      <item>No live swap or lending in this phase (keep flags off)</item>
+      <item>No DB migrations (use existing in-memory stores)</item>
+      <item>No multi-tenant branding or CMS work</item>
+    </out>
+  </scope>
+
+  <deliverables>
+    <move>
+      <item>Module A: tenant_vault.move — resource TenantVault&lt;USDC&gt; scoped per tenant; entry fun donate_usdc(tenant, user: address, amount: u64, cause_id: vector&lt;u8&gt;)</item>
+      <item>Module B: nonprofit_registry.move — map&lt;cause_id → payout_address&gt; with admin-only set/update; view function get_payout(cause_id)</item>
+      <item>Module C: receipts.move — DonationReceipt event { tenant, user, cause_id, amount, tx_meta }</item>
+      <item>Build script & addresses for testnet; publish steps documented</item>
+    </move>
+    <server>
+      <item>GET /api/chain/addresses → returns { tenantVault, registry, usdcCoinType, network }</item>
+      <item>(Optional) POST /api/chain/submit-tx to relay raw bcs tx if we choose server-relay; otherwise client submits directly</item>
+    </server>
+    <client>
+      <item>Donation action in the Journey step calls donate_usdc with Keyless signer (testnet)</item>
+      <item>On success, append receipt with txHash; show explorer link</item>
+      <item>Feature flags: DONATION_LIVE=true enables on-chain; otherwise falls back to mock</item>
+    </client>
+    <docs>
+      <item>MOVE_DEPLOY.md with publish commands and address book</item>
+      <item>ENV.sample additions for chain config and tenant addresses</item>
+    </docs>
+  </deliverables>
+
+  <io_contract>
+    <env>
+      <![CDATA[
+      APTOS_NETWORK=testnet
+      APTOS_REST_URL=https://fullnode.testnet.aptoslabs.com/v1
+      TENANT_ADDRESS=0x<tenant>
+      TENANT_VAULT_ADDRESS=0x<after_publish>
+      NONPROFIT_REGISTRY_ADDRESS=0x<after_publish>
+      USDC_COIN_TYPE=0x<circle_coin_addr>::usdc::USDC   # confirm testnet type
+      DONATION_LIVE=true
+      ]]>
+    </env>
+    <server_endpoints>
+      <endpoint method="GET" path="/api/chain/addresses">
+        <response><![CDATA[{ "network":"testnet","tenantVault":"0x...","registry":"0x...","usdcCoinType":"0x...::usdc::USDC" }]]></response>
+      </endpoint>
+      <endpoint method="POST" path="/api/chain/submit-tx" optional="true">
+        <request><![CDATA[{ "bcs":"base64-encoded-transaction" }]]></request>
+        <response><![CDATA[{ "hash":"0x<txhash>" }]]></response>
+      </endpoint>
+    </server_endpoints>
+    <client_action>
+      <donate><![CDATA[
+      // Pseudocode contract for the live donation step
+      const payload = entryFunctionPayload(
+        `${TENANT_VAULT_ADDRESS}::tenant_vault::donate_usdc`,
+        [ USDC_COIN_TYPE ],
+        [ userAddress, amountU64, utf8ToBytes(causeId) ]
+      );
+      const signed = await keyless.signTransaction(payload);
+      const { hash } = await aptosClient.submitTransaction(signed);
+      ]]></donate>
+    </client_action>
+  </io_contract>
+
+  <implementation>
+    <move>
+      <step>TenantVault: store Coin&lt;USDC&gt; under tenant; only module functions can move funds. Guard amount &gt; 0.</step>
+      <step>NonprofitRegistry: admin-only set_cause(cause_id, addr); disable/unset supported.</step>
+      <step>donate_usdc: assert payout exists; withdraw USDC from vault; transfer to payout; emit DonationReceipt {tenant, user, cause_id, amount, tx_meta}.</step>
+      <step>Views: get_payout(cause_id) returns address for client pre-checks.</step>
+    </move>
+    <server>
+      <step>Expose /api/chain/addresses from a static address book loaded at boot.</step>
+      <step>(Optional) Implement relay POST if we decide not to submit directly from client; otherwise skip.</step>
+    </server>
+    <client>
+      <step>Add DONATION_LIVE flag. If true, resolve addresses via /api/chain/addresses once and cache.</step>
+      <step>Update the Journey donation step: 
+        - Disable button while signing.
+        - Submit tx with Keyless signer.
+        - On success, create receipt { type:"Donation", amount, cause, reference: txHash } and show toast with explorer link.
+      </step>
+      <step>On error, show friendly message and allow retry; do not alter balances when live call fails.</step>
+    </client>
+  </implementation>
+
+  <acceptance>
+    <tests>
+      <item>Move unit tests: registry set/get; donate_usdc happy path; reverts on unknown cause or zero amount.</item>
+      <item>Client manual test: with DONATION_LIVE=true, pressing “Donate now” produces an Aptos tx hash and a visible receipt row referencing that hash.</item>
+      <item>Server GET /api/chain/addresses returns the published addresses; 200 status.</item>
+      <item>With DONATION_LIVE=false, the step behaves exactly as before (mock), no network calls.</item>
+    </tests>
+    <user_flow>
+      <step>Login (Google→Keyless), choose cause, run Journey; at donation step, confirm; see spinner then success + explorer link; Portfolio timeline shows receipt with txHash.</step>
+    </user_flow>
+  </acceptance>
+
+  <non_goals>
+    <item>No swap or lending adapter wiring in this phase.</item>
+    <item>No DB persistence for runs or receipts (keep existing in-memory stores).</item>
+    <item>No multi-tenant policy engine; a single tenant vault is sufficient for demo.</item>
+  </non_goals>
+
+  <risks>
+    <item>USDC coin type mismatch on testnet — verify the correct testnet USDC type before publish.</item>
+    <item>Keyless signing shape differences — follow the reference example payload format for entry functions.</item>
+    <item>Time: prioritize a single cause entry in the registry to reduce scope.</item>
+  </risks>
+
+  <handoff>
+    <next_phase_pointer>
+      Phase 4 will optionally enable live swap/lend via adapters behind feature flags (SWAP_LIVE, LEND_LIVE), reusing the injected signer and Aptos client.
+    </next_phase_pointer>
+  </handoff>
+</spec>

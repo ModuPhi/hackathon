@@ -1,0 +1,7 @@
+{
+  "network": "testnet",
+  "restUrl": "http://localhost:8080/v1",
+  "tenantAddress": "0x78f69925986ee54e33b935ffff1e3ce5a6410d1a6627647b5cfd411b7161df73",
+  "usdcMetadataAddress": "0xdc86b21c613bd9f5eca19650a7ae62f3321aaf971d863522d61b9218b8109ae6",
+  "explorerBase": "https://explorer.aptoslabs.com"
+}
