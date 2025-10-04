@@ -16,6 +16,7 @@ import {
   type AnyRawTransaction,
   type ProofFetchStatus,
 } from "@aptos-labs/ts-sdk";
+import { queryClient } from "../lib/queryClient";
 
 type SessionUser = {
   sub: string;
@@ -379,10 +380,24 @@ export function KeylessProvider({ children }: { children: React.ReactNode }) {
     window.location.assign(authUrl.toString());
   }, [setStoredState]);
 
-  const logout = useCallback(() => {
+  const resetDemoState = useCallback(async () => {
     if (!isBrowser) return;
+    try {
+      await fetch("/api/demo/reset", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Failed to reset demo state", error);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    if (!isBrowser) return;
+    await resetDemoState();
     clearSession();
-  }, [clearSession]);
+    queryClient.clear();
+  }, [clearSession, resetDemoState]);
 
   const signMessage = useCallback(
     async (message: string | Uint8Array) => {

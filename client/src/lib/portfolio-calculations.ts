@@ -101,6 +101,13 @@ export function formatNumber(num: number): string {
   return `$${parseFloat(num.toFixed(2)).toFixed(2)}`;
 }
 
+export function formatHealthFactor(value: number, digits: number = 2): string {
+  if (!Number.isFinite(value)) {
+    return '—';
+  }
+  return value.toFixed(digits);
+}
+
 export function generateReceiptReference(): string {
   const timestamp = Date.now().toString().slice(-6);
   return `MOCK-TX-${timestamp}`;

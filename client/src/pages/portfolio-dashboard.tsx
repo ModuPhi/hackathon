@@ -3,18 +3,18 @@ import { Header } from "@/components/shared/header";
 import { BalanceCards } from "@/components/portfolio/balance-cards";
 import { CauseSelector } from "@/components/portfolio/cause-selector";
 import { SelectedNonprofits } from "@/components/portfolio/selected-nonprofits";
-import { EffectsBoard } from "@/components/portfolio/effects-board";
 import { ReceiptsTimeline } from "@/components/portfolio/receipts-timeline";
 import { CurrentPositions } from "@/components/portfolio/current-positions";
 import { IntroEffectOverlay } from "@/components/effects/intro-effect-overlay";
-import { EffectAOverlay } from "@/components/effects/effect-a-overlay";
-import { EffectBOverlay } from "@/components/effects/effect-b-overlay";
+import { JourneysBoard } from "@/components/journeys/journeys-board";
+import { JourneyLoader } from "@/components/journeys/journey-loader";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import type { JourneyManifestEntry } from "@/types/journeys";
 
 export default function PortfolioDashboard() {
   const [introOverlayOpen, setIntroOverlayOpen] = useState(false);
-  const [effectAOverlayOpen, setEffectAOverlayOpen] = useState(false);
-  const [effectBOverlayOpen, setEffectBOverlayOpen] = useState(false);
+  const [selectedJourney, setSelectedJourney] = useState<JourneyManifestEntry | null>(null);
+  const [journeyLoaderOpen, setJourneyLoaderOpen] = useState(false);
   
   const { isLoading } = usePortfolio();
 
@@ -22,12 +22,14 @@ export default function PortfolioDashboard() {
     setIntroOverlayOpen(true);
   };
 
-  const handleStartEffectA = () => {
-    setEffectAOverlayOpen(true);
+  const handleSelectJourney = (journey: JourneyManifestEntry) => {
+    setSelectedJourney(journey);
+    setJourneyLoaderOpen(true);
   };
 
-  const handleStartEffectB = () => {
-    setEffectBOverlayOpen(true);
+  const handleCloseJourney = () => {
+    setJourneyLoaderOpen(false);
+    setSelectedJourney(null);
   };
 
   if (isLoading) {
@@ -84,10 +86,9 @@ export default function PortfolioDashboard() {
         {/* Journeys Board */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4">Choose a Journey</h2>
-          <EffectsBoard
+          <JourneysBoard
             onStartIntro={handleStartIntro}
-            onStartEffectA={handleStartEffectA}
-            onStartEffectB={handleStartEffectB}
+            onSelectJourney={handleSelectJourney}
           />
         </section>
 
@@ -128,14 +129,10 @@ export default function PortfolioDashboard() {
         onClose={() => setIntroOverlayOpen(false)}
       />
 
-      <EffectAOverlay
-        isOpen={effectAOverlayOpen}
-        onClose={() => setEffectAOverlayOpen(false)}
-      />
-
-      <EffectBOverlay
-        isOpen={effectBOverlayOpen}
-        onClose={() => setEffectBOverlayOpen(false)}
+      <JourneyLoader
+        journey={selectedJourney}
+        isOpen={journeyLoaderOpen && !!selectedJourney}
+        onClose={handleCloseJourney}
       />
     </div>
   );

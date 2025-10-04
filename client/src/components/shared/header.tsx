@@ -1,11 +1,11 @@
 import { Bell, User, CheckCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { NotificationPanel } from "./notification-panel";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useKeyless } from "@/contexts/keyless-context";
 import { shortAptosAddress } from "@/lib/utils";
+import { useJourneyRuns } from "@/hooks/use-journey-runs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { portfolio } = usePortfolio();
   const { aptosAddress, isAuthenticated, login, logout, loading } = useKeyless();
+  const { completedCount } = useJourneyRuns();
 
   const hasNotifications = portfolio && (
     (portfolio.healthFactor && portfolio.healthFactor < 1.25) ||
@@ -38,7 +39,7 @@ export function Header() {
             <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted text-sm">
               <CheckCircle className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground font-medium">
-                Journeys completed: <span data-testid="effects-count">{portfolio?.effectsCompleted || 0}</span>
+                Journeys completed: <span data-testid="effects-count">{completedCount}</span>
               </span>
             </div>
             

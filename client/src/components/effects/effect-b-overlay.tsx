@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
@@ -5,9 +6,45 @@ import { ChevronRight } from "lucide-react";
 interface EffectBOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  onJourneyStart?: () => void;
+  onJourneyComplete?: () => void;
+  onJourneyAbort?: (reason?: string) => void;
 }
 
-export function EffectBOverlay({ isOpen, onClose }: EffectBOverlayProps) {
+export function EffectBOverlay({ isOpen, onClose, onJourneyStart, onJourneyComplete, onJourneyAbort }: EffectBOverlayProps) {
+  const startedRef = useRef(false);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (!startedRef.current) {
+        startedRef.current = true;
+        onJourneyStart?.();
+      }
+    } else {
+      if (startedRef.current && !completedRef.current) {
+        onJourneyAbort?.('closed');
+      }
+      startedRef.current = false;
+      completedRef.current = false;
+    }
+  }, [isOpen, onJourneyAbort, onJourneyStart]);
+
+  const handleCancel = () => {
+    if (startedRef.current && !completedRef.current) {
+      onJourneyAbort?.('user-cancelled');
+    }
+    onClose();
+  };
+
+  const handleReturn = () => {
+    if (startedRef.current && !completedRef.current) {
+      completedRef.current = true;
+      onJourneyComplete?.();
+    }
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -24,7 +61,7 @@ export function EffectBOverlay({ isOpen, onClose }: EffectBOverlayProps) {
               </div>
               <Button
                 variant="ghost"
-                onClick={onClose}
+                onClick={handleCancel}
                 className="text-sm text-muted-foreground hover:text-foreground"
                 data-testid="cancel-effect-b"
               >
@@ -42,7 +79,7 @@ export function EffectBOverlay({ isOpen, onClose }: EffectBOverlayProps) {
                 You now hold APT. Come back later to see how price changes affect your portfolio.
               </p>
               <Button
-                onClick={onClose}
+                onClick={handleReturn}
                 data-testid="return-from-effect-b"
               >
                 Return to portfolio

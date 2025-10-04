@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,32 +8,94 @@ import { Slider } from "@/components/ui/slider";
 import { CheckCircle, ChevronRight, Check } from "lucide-react";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { CancelConfirmDialog } from "@/components/shared/cancel-confirm-dialog";
-import { calculateEffectASteps, calculateBorrowMetrics, formatNumber } from "@/lib/portfolio-calculations";
+import { calculateEffectASteps, calculateBorrowMetrics, formatNumber, formatHealthFactor } from "@/lib/portfolio-calculations";
 import { useToast } from "@/hooks/use-toast";
-import aaveLogo from "@assets/aave_1759458032595.png";
+import blockleadLogo from "@assets/blocklead.png";
+
+const APT_PRICE = 5.41;
+import type { Portfolio } from "@shared/schema";
 
 interface EffectAOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  onJourneyStart?: () => void;
+  onJourneyComplete?: () => void;
+  onJourneyAbort?: (reason?: string) => void;
+  updatePortfolioOverride?: (updates: Partial<Portfolio>) => Promise<void>;
+  createReceiptOverride?: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void>;
 }
 
 type Step = 'amount-selection' | 'overview' | 'step1' | 'step2' | 'step3' | 'step4' | 'success';
 
-export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
+export function EffectAOverlay({
+  isOpen,
+  onClose,
+  onJourneyStart,
+  onJourneyComplete,
+  onJourneyAbort,
+  updatePortfolioOverride,
+  createReceiptOverride,
+}: EffectAOverlayProps) {
   const [currentStep, setCurrentStep] = useState<Step>('amount-selection');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [allocatedAmount, setAllocatedAmount] = useState(0);
   const [amountInput, setAmountInput] = useState("");
   const [borrowPercent, setBorrowPercent] = useState(40);
   const [donationAmount, setDonationAmount] = useState(0);
+  const journeyStartedRef = useRef(false);
+  const journeyCompletedRef = useRef(false);
   
-  const { portfolio, updatePortfolio, createReceipt, effectAData, setEffectAData, nonprofits } = usePortfolio();
+  const {
+    portfolio,
+    updatePortfolio: updatePortfolioContext,
+    createReceipt: createReceiptContext,
+    setEffectAData,
+    nonprofits,
+  } = usePortfolio();
+  const updatePortfolioHandler = updatePortfolioOverride ?? updatePortfolioContext;
+  const createReceiptHandler = createReceiptOverride ?? createReceiptContext;
   const { toast } = useToast();
 
   // Calculate all steps when component mounts or amount changes
   const calculatedData = calculateEffectASteps(allocatedAmount);
 
   const borrowMetrics = calculateBorrowMetrics(calculatedData.step2.aptReceived, borrowPercent);
+
+  const notifyJourneyStart = () => {
+    if (!journeyStartedRef.current) {
+      journeyStartedRef.current = true;
+      onJourneyStart?.();
+    }
+  };
+
+  const notifyJourneyComplete = () => {
+    if (!journeyCompletedRef.current) {
+      journeyCompletedRef.current = true;
+      onJourneyComplete?.();
+    }
+  };
+
+  const notifyJourneyAbort = (reason?: string) => {
+    onJourneyAbort?.(reason);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep('amount-selection');
+      setAmountInput("");
+      setAllocatedAmount(0);
+      setBorrowPercent(40);
+      setDonationAmount(0);
+      journeyStartedRef.current = false;
+      journeyCompletedRef.current = false;
+    } else {
+      if (journeyStartedRef.current && !journeyCompletedRef.current) {
+        notifyJourneyAbort('closed');
+      }
+      journeyStartedRef.current = false;
+      journeyCompletedRef.current = false;
+    }
+  }, [isOpen]);
 
   const handleCancel = () => {
     setShowCancelDialog(true);
@@ -44,6 +106,9 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
     setCurrentStep('amount-selection');
     setAmountInput("");
     setAllocatedAmount(0);
+    if (journeyStartedRef.current && !journeyCompletedRef.current) {
+      notifyJourneyAbort('user-cancelled');
+    }
     onClose();
   };
 
@@ -62,6 +127,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   };
 
   const handleBegin = () => {
+    notifyJourneyStart();
     setEffectAData(calculatedData);
     setCurrentStep('step1');
   };
@@ -69,7 +135,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const handleStep1Confirm = async () => {
     if (!portfolio) return;
     
-    await updatePortfolio({
+    await updatePortfolioHandler({
       credits: portfolio.credits - allocatedAmount,
       usdc: calculatedData.step1.usdcReceived
     });
@@ -85,7 +151,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const handleStep2Confirm = async () => {
     if (!portfolio) return;
     
-    await updatePortfolio({
+    await updatePortfolioHandler({
       usdc: 0,
       apt: calculatedData.step2.aptReceived
     });
@@ -101,7 +167,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
   const handleStep3Confirm = async () => {
     if (!portfolio) return;
     
-    await updatePortfolio({
+    await updatePortfolioHandler({
       debt: borrowMetrics.borrowed,
       usdc: borrowMetrics.borrowed,
       healthFactor: borrowMetrics.healthFactor
@@ -132,9 +198,9 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
       updateData.effectsCompleted = portfolio.effectsCompleted + 1;
     }
     
-    await updatePortfolio(updateData);
-    
-    await createReceipt({
+    await updatePortfolioHandler(updateData);
+
+    await createReceiptHandler({
       type: "Donation",
       amount: donationAmount,
       cause: selectedNonprofit?.name || undefined,
@@ -142,6 +208,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
     });
     
     setCurrentStep('success');
+    notifyJourneyComplete();
   };
 
   const handleReturn = () => {
@@ -204,7 +271,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Portfolio</span>
                 <ChevronRight className="w-4 h-4" />
-                <span className="text-foreground font-medium">Journey A</span>
+                <span className="text-foreground font-medium">Collateral Giving</span>
               </div>
               <Button
                 variant="ghost"
@@ -409,7 +476,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground mb-2">Quote</Label>
-                        <div className="text-sm text-muted-foreground">1 APT = 10.00 USD</div>
+                        <div className="text-sm text-muted-foreground">1 APT = {APT_PRICE.toFixed(2)} USD</div>
                         <div className="text-xs text-muted-foreground mt-1">0.30% slippage assumed</div>
                       </div>
                       <div className="pt-4 border-t border-border">
@@ -439,14 +506,14 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
           {/* Step 3: Supply and Borrow */}
           {currentStep === 'step3' && (
             <div data-testid="effect-a-step-3">
-              {/* Aave Branding Header */}
+              {/* Blocklead Branding Header */}
               <div className="mb-6 p-6 bg-card border border-border rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
-                  <img src={aaveLogo} alt="Aave" className="h-6" />
-                  <h2 className="text-2xl font-bold text-foreground">Collateralized Lending with Aave</h2>
+                  <img src={blockleadLogo} alt="Blocklead" className="h-12 w-12 object-contain" />
+                  <h2 className="text-2xl font-bold text-foreground">Collateralized Lending with Blocklead</h2>
                 </div>
                 <p className="text-muted-foreground">
-                  Learn how Aave's lending protocol lets you unlock the value of your crypto assets without selling them. 
+                  Learn how Blocklead's lending protocol lets you unlock the value of your crypto assets without selling them. 
                   Supply your APT as collateral and borrow USDC instantly—all while keeping your potential gains.
                 </p>
               </div>
@@ -454,23 +521,23 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
               <div className="grid md:grid-cols-2 gap-6">
                 <Card>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-foreground mb-3">How Aave Lending Works</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-3">How Blocklead Lending Works</h3>
                     <div className="space-y-3 text-sm text-muted-foreground">
                       <p>
-                        <strong className="text-foreground">Supply as Collateral:</strong> Your APT tokens are deposited into Aave's protocol, 
+                        <strong className="text-foreground">Supply as Collateral:</strong> Your APT tokens are deposited into Blocklead's protocol, 
                         serving as security for your loan. You still own them and benefit if the price rises.
                       </p>
                       <p>
-                        <strong className="text-foreground">Borrow Against Value:</strong> Aave lets you borrow up to 80% of your collateral's value. 
+                        <strong className="text-foreground">Borrow Against Value:</strong> Blocklead lets you borrow up to 80% of your collateral's value. 
                         This is called your loan-to-value (LTV) ratio. The 80% limit protects both you and the protocol from market volatility.
                       </p>
-                      <p>
-                        <strong className="text-foreground">Health Factor Protection:</strong> This number shows how safe your loan is. 
-                        Above 1.0 means you're safe. If it drops below 1.0, your collateral could be liquidated to repay the loan. 
-                        Higher percentages mean a lower health factor and more risk.
-                      </p>
+                    <p>
+                      <strong className="text-foreground">Health Factor Protection:</strong> This number shows how safe your loan is. 
+                      Above 1.0 means you're safe. If it drops below 1.0, your collateral could be liquidated to repay the loan. 
+                      Higher percentages mean a lower health factor and more risk.
+                    </p>
                       <p className="text-xs pt-2 border-t border-border">
-                        💡 <strong>Aave Tip:</strong> Start conservatively. You can always borrow more later, but it's better to maintain a healthy buffer against price swings.
+                        💡 <strong>Blocklead Tip:</strong> Start conservatively. You can always borrow more later, but it's better to maintain a healthy buffer against price swings.
                       </p>
                     </div>
                   </CardContent>
@@ -506,7 +573,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                             style={{ color: borrowMetrics.safetyColor }}
                             data-testid="step3-health-value"
                           >
-                            {formatNumber(borrowMetrics.healthFactor)}
+                            {formatHealthFactor(borrowMetrics.healthFactor, 2)}
                           </span>
                         </div>
                         <p 
@@ -630,7 +697,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
               <Card>
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <img src={aaveLogo} alt="Aave" className="h-5" />
+                    <img src={blockleadLogo} alt="Blocklead" className="h-10 w-10 object-contain" />
                     What You Just Accomplished
                   </h3>
                   <div className="space-y-3 text-muted-foreground">
@@ -646,7 +713,7 @@ export function EffectAOverlay({ isOpen, onClose }: EffectAOverlayProps) {
                     </p>
                     <p>
                       <strong className="text-foreground">Real DeFi Impact:</strong> What you just experienced mirrors how major 
-                      investors and protocols use platforms like Aave every day. They borrow against their holdings to invest, 
+                      investors and protocols use platforms like Blocklead every day. They borrow against their holdings to invest, 
                       spend, or create opportunity—all without triggering taxable sales or losing their position.
                     </p>
                   </div>

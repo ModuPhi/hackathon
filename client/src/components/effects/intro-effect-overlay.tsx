@@ -138,7 +138,7 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
                       Real DeFi Products
                     </h3>
                     <p className="text-muted-foreground">
-                      You'll use actual DeFi protocols from leading companies like Aave and Aptos. 
+                      You'll use actual DeFi protocols from leading companies like Blocklead and NexaChain. 
                       These are the same tools used by investors and institutions worldwide.
                     </p>
                   </CardContent>

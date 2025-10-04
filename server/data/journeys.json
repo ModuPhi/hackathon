@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "buy-and-hold",
+    "title": "Simple Start",
+    "level": "beginner",
+    "enabled": true,
+    "importPath": "@/journeys/EffectBOverlay"
+  },
+  {
+    "slug": "lend-and-donate",
+    "title": "Collateral Giving",
+    "level": "intermediate",
+    "enabled": true,
+    "importPath": "@/journeys/EffectAOverlay"
+  }
+]

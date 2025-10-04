@@ -2,8 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePortfolio } from "@/hooks/use-portfolio";
-import aptosLogo from "@assets/Aptos_Primary_BLK_1759458032595.png";
-import aaveLogo from "@assets/aave_1759458032595.png";
+import nexachainLogo from "@assets/nexachain.png";
+import blockleadLogo from "@assets/blocklead.png";
 
 interface EffectsBoardProps {
   onStartIntro: () => void;
@@ -91,7 +91,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
         </CardContent>
       </Card>
 
-      {/* Journey B - Aptos (Beginner) */}
+      {/* Journey B - NexaChain (Beginner) */}
       <Card className={isEffectBComplete ? 'bg-success/5 border-success' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
@@ -101,7 +101,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
               </h3>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Powered by</span>
-                <img src={aptosLogo} alt="Aptos" className="h-4" data-testid="aptos-logo" />
+                <img src={nexachainLogo} alt="NexaChain" className="h-8 w-8 object-contain" data-testid="aptos-logo" />
               </div>
             </div>
             <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
@@ -120,7 +120,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
         </CardContent>
       </Card>
 
-      {/* Journey A - Aave (Intermediate) */}
+      {/* Journey A - Blocklead (Intermediate) */}
       <Card className={isEffectAComplete ? 'bg-success/5 border-success' : ''}>
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-3">
@@ -130,7 +130,7 @@ export function EffectsBoard({ onStartIntro, onStartEffectA, onStartEffectB }: E
               </h3>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Powered by</span>
-                <img src={aaveLogo} alt="Aave" className="h-4" data-testid="aave-logo" />
+                <img src={blockleadLogo} alt="Blocklead" className="h-8 w-8 object-contain" data-testid="aave-logo" />
               </div>
             </div>
             <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20">

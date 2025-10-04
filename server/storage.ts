@@ -185,6 +185,14 @@ export class MemStorage implements IStorage {
   async getNonprofits(): Promise<Nonprofit[]> {
     return Array.from(this.nonprofits.values());
   }
+
+  resetDemoData(): void {
+    this.users.clear();
+    this.portfolios.clear();
+    this.receipts.clear();
+    this.nonprofits.clear();
+    this.initializeNonprofits();
+  }
 }
 
 export const storage = new MemStorage();

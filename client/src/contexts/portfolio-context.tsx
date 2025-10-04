@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Portfolio, Receipt, Nonprofit, EffectAData } from "@shared/schema";
+import { useKeyless } from "@/contexts/keyless-context";
 
 interface PortfolioContextType {
   portfolio: Portfolio | null;
@@ -29,6 +30,7 @@ const initialEffectAData: EffectAData = {
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [effectAData, setEffectADataState] = useState<EffectAData>(initialEffectAData);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useKeyless();
 
   const { data: portfolio, isLoading: portfolioLoading } = useQuery<Portfolio>({
     queryKey: ['/api/portfolio'],
@@ -77,6 +79,13 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const resetEffectAData = () => {
     setEffectADataState(initialEffectAData);
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      resetEffectAData();
+      queryClient.clear();
+    }
+  }, [isAuthenticated, queryClient]);
 
   const value: PortfolioContextType = {
     portfolio: portfolio || null,
