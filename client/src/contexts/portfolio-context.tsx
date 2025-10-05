@@ -1,28 +1,76 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import type { Portfolio, Receipt, Nonprofit, EffectAData } from "@shared/schema";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EffectAData } from "@shared/schema";
 import { useKeyless } from "@/contexts/keyless-context";
 
+export type PortfolioSnapshot = {
+  aptosAddress: string;
+  credits: number;
+  usdc: number;
+  apt: number;
+  debt: number;
+  healthFactor: number | null;
+  selectedNonprofit: string | null | undefined;
+  completedEffects: string[];
+  effectsCompleted: number;
+  donatedTotal: number;
+  vaultBalanceMicro: string;
+  updatedAt: string;
+};
+
+type ReceiptBase = {
+  hash: string;
+  journeyId: string;
+  amount: number;
+  assetMetadata: string | null;
+  causeSlug: string | null;
+  causeName: string | null;
+  timestamp: string | null;
+  blockHeight: string | null;
+  sequenceNumber: string;
+};
+
+export type ReceiptVerificationStatus = "idle" | "verifying" | "pending" | "verified" | "failed";
+
+type ReceiptVerificationRecord = {
+  status: ReceiptVerificationStatus;
+  explorerUrl?: string | null;
+  message?: string | null;
+};
+
+export type ReceiptEntry = ReceiptBase & {
+  verified: boolean;
+  explorerUrl: string | null;
+  verificationStatus: ReceiptVerificationStatus;
+  verificationMessage: string | null;
+};
+
+export type NonprofitEntry = {
+  id?: string;
+  slug: string;
+  name: string;
+  description: string;
+  location: string;
+  imageUrl: string;
+  category: string;
+  payoutAddress: string | null;
+  verified: number;
+};
+
 interface PortfolioContextType {
-  portfolio: Portfolio | null;
-  receipts: Receipt[];
-  nonprofits: Nonprofit[];
+  portfolio: PortfolioSnapshot | null;
+  receipts: ReceiptEntry[];
+  nonprofits: NonprofitEntry[];
   effectAData: EffectAData;
   isLoading: boolean;
-  verificationResults: Record<string, VerificationResult>;
-  
-  updatePortfolio: (updates: Partial<Portfolio>) => Promise<void>;
-  createReceipt: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void>;
-  registerReceiptJourney: (reference: string, journeyId: string) => void;
+  refreshPortfolio: () => Promise<void>;
+  refreshReceipts: () => Promise<void>;
+  updatePreferences: (updates: { selectedNonprofit?: string | null; completedEffects?: string[]; effectsCompleted?: number }) => Promise<void>;
+  recordDonationMetadata: (payload: { hash: string; causeName?: string | null; causeSlug?: string | null }) => Promise<void>;
+  verifyReceipt: (hash: string, journeyId: string) => Promise<void>;
   setEffectAData: (data: Partial<EffectAData>) => void;
   resetEffectAData: () => void;
 }
-
-type VerificationResult = {
-  status: "pending" | "verified" | "failed";
-  explorerUrl?: string;
-};
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
@@ -31,242 +79,302 @@ const initialEffectAData: EffectAData = {
   step1: { fee: 0, usdcReceived: 0 },
   step2: { slippage: 0, aptReceived: 0 },
   step3: { borrowPercent: 80, borrowed: 0, healthFactor: 0 },
-  step4: { donationAmount: 0, reference: 'MOCK-TX-001' }
+  step4: { donationAmount: 0, reference: "" },
 };
+
+const VERIFIER_POLL_INTERVAL_MS = Number(import.meta.env.VITE_VERIFIER_POLL_INTERVAL ?? 5_000);
+const VERIFIER_MAX_ATTEMPTS = 6;
+
+async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || response.statusText);
+  }
+  return response.json() as Promise<T>;
+}
+
+async function fetchPortfolioSnapshot(aptosAddress: string): Promise<PortfolioSnapshot> {
+  const url = `/api/portfolio?${new URLSearchParams({ aptosAddress })}`;
+  return fetchJson<PortfolioSnapshot>(url);
+}
+
+async function fetchReceipts(aptosAddress: string): Promise<ReceiptBase[]> {
+  const url = `/api/receipts?${new URLSearchParams({ aptosAddress })}`;
+  return fetchJson<ReceiptBase[]>(url);
+}
+
+async function fetchNonprofitsMetadata(): Promise<NonprofitEntry[]> {
+  return fetchJson<NonprofitEntry[]>("/api/nonprofits");
+}
 
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [effectAData, setEffectADataState] = useState<EffectAData>(initialEffectAData);
+  const [receiptVerifications, setReceiptVerifications] = useState<Record<string, ReceiptVerificationRecord>>({});
   const queryClient = useQueryClient();
   const { isAuthenticated, aptosAddress } = useKeyless();
 
-  const { data: portfolio, isLoading: portfolioLoading } = useQuery<Portfolio>({
-    queryKey: ['/api/portfolio'],
+  const normalizedAddress = useMemo(() => aptosAddress?.toLowerCase() ?? null, [aptosAddress]);
+
+  const portfolioQuery = useQuery({
+    queryKey: ["/api/portfolio", normalizedAddress],
+    queryFn: () => fetchPortfolioSnapshot(normalizedAddress!),
+    enabled: Boolean(normalizedAddress),
   });
 
-  const { data: receipts = [] } = useQuery<Receipt[]>({
-    queryKey: ['/api/receipts'],
+  const receiptsQuery = useQuery({
+    queryKey: ["/api/receipts", normalizedAddress],
+    queryFn: () => fetchReceipts(normalizedAddress!),
+    enabled: Boolean(normalizedAddress),
+    refetchInterval: 30_000,
   });
 
-  const { data: nonprofits = [] } = useQuery<Nonprofit[]>({
-    queryKey: ['/api/nonprofits'],
+  const nonprofitsQuery = useQuery({
+    queryKey: ["/api/nonprofits"],
+    queryFn: fetchNonprofitsMetadata,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const updatePortfolioMutation = useMutation({
-    mutationFn: async (updates: Partial<Portfolio>) => {
-      const response = await apiRequest('PATCH', '/api/portfolio', updates);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/portfolio'] });
-    },
-  });
-
-  const createReceiptMutation = useMutation({
-    mutationFn: async (receipt: { type: string; amount: number; cause?: string; reference: string }) => {
-      const response = await apiRequest('POST', '/api/receipts', receipt);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/receipts'] });
-    },
-  });
-
-  const updatePortfolio = async (updates: Partial<Portfolio>) => {
-    await updatePortfolioMutation.mutateAsync(updates);
-  };
-
-  const createReceipt = async (receipt: { type: string; amount: number; cause?: string; reference: string }) => {
-    await createReceiptMutation.mutateAsync(receipt);
-  };
-
-  const [receiptJourneys, setReceiptJourneys] = useState<Record<string, string>>({});
-  const [verificationResults, setVerificationResults] = useState<Record<string, VerificationResult>>({});
-  const activeVerificationsRef = useRef<Record<string, boolean>>({});
-  const pendingTimeoutsRef = useRef<Record<string, number>>({});
-
-  const normalizeReference = useCallback((reference: string) => reference.trim().toLowerCase(), []);
-
-  const registerReceiptJourney = useCallback((reference: string, journeyId: string) => {
-    const normalized = normalizeReference(reference);
-    setReceiptJourneys((prev) => {
-      if (prev[normalized] === journeyId) {
-        return prev;
+  const updatePreferencesMutation = useMutation({
+    mutationFn: async (updates: { selectedNonprofit?: string | null; completedEffects?: string[]; effectsCompleted?: number }) => {
+      if (!normalizedAddress) {
+        throw new Error("Aptos address unavailable");
       }
-      return { ...prev, [normalized]: journeyId };
-    });
-  }, [normalizeReference]);
-
-  useEffect(() => {
-    return () => {
-      Object.values(pendingTimeoutsRef.current).forEach((timeoutId) => {
-        window.clearTimeout(timeoutId);
+      await fetchJson("/api/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aptosAddress: normalizedAddress, ...updates }),
       });
-    };
-  }, []);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio", normalizedAddress] });
+    },
+  });
 
-  const pollInterval = useMemo(() => {
-    const raw = Number.parseInt(import.meta.env.VITE_VERIFIER_POLL_INTERVAL ?? "5000", 10);
-    return Number.isFinite(raw) && raw > 0 ? raw : 5000;
-  }, []);
-
-  const maxAttempts = useMemo(() => Math.max(1, Math.floor(30000 / pollInterval)), [pollInterval]);
-
-  const scheduleAttempt = useCallback((reference: string, fn: () => void) => {
-    const timeoutId = window.setTimeout(() => {
-      delete pendingTimeoutsRef.current[reference];
-      fn();
-    }, pollInterval);
-    pendingTimeoutsRef.current[reference] = timeoutId;
-  }, [pollInterval]);
-
-  const startVerification = useCallback((reference: string, journeyId: string) => {
-    const normalized = normalizeReference(reference);
-    if (!aptosAddress) return;
-
-    const attempt = async (remaining: number) => {
-      try {
-        const params = new URLSearchParams({
-          user: aptosAddress,
-          journey_id: journeyId,
-        });
-        const response = await fetch(`/api/verify/${normalized}?${params.toString()}`, {
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = (await response.json()) as { verified: boolean; explorerUrl?: string };
-          if (data.verified) {
-            setVerificationResults((prev) => {
-              return {
-                ...prev,
-                [normalized]: { status: "verified", explorerUrl: data.explorerUrl },
-              };
-            });
-            delete activeVerificationsRef.current[normalized];
-            return;
-          }
-
-          if (remaining > 1) {
-            setVerificationResults((prev) => ({
-              ...prev,
-              [normalized]: {
-                status: "pending",
-                explorerUrl: data.explorerUrl ?? prev[normalized]?.explorerUrl,
-              },
-            }));
-            scheduleAttempt(normalized, () => {
-              void attempt(remaining - 1);
-            });
-            return;
-          }
-
-          setVerificationResults((prev) => ({
-            ...prev,
-            [normalized]: {
-              status: "failed",
-              explorerUrl: data.explorerUrl ?? prev[normalized]?.explorerUrl,
-            },
-          }));
-          delete activeVerificationsRef.current[normalized];
-          return;
-        }
-      } catch (error) {
-        console.warn("Verification request failed", error);
+  const recordDonationMetadataMutation = useMutation({
+    mutationFn: async (payload: { hash: string; causeName?: string | null; causeSlug?: string | null }) => {
+      if (!normalizedAddress) {
+        throw new Error("Aptos address unavailable");
       }
+      await fetchJson("/api/receipts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aptosAddress: normalizedAddress, ...payload }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/receipts", normalizedAddress] });
+    },
+  });
 
-      if (remaining > 1) {
-        scheduleAttempt(normalized, () => {
-          void attempt(remaining - 1);
-        });
-        return;
-      }
+  const refreshPortfolio = useCallback(async () => {
+    if (!normalizedAddress) return;
+    await queryClient.invalidateQueries({ queryKey: ["/api/portfolio", normalizedAddress] });
+  }, [normalizedAddress, queryClient]);
 
-      setVerificationResults((prev) => ({
-        ...prev,
-        [normalized]: {
-          status: "failed",
-          explorerUrl: prev[normalized]?.explorerUrl,
-        },
-      }));
-      delete activeVerificationsRef.current[normalized];
-    };
+  const refreshReceipts = useCallback(async () => {
+    if (!normalizedAddress) return;
+    await queryClient.invalidateQueries({ queryKey: ["/api/receipts", normalizedAddress] });
+  }, [normalizedAddress, queryClient]);
 
-    setVerificationResults((prev) => ({
-      ...prev,
-      [normalized]: {
-        status: "pending",
-        explorerUrl: prev[normalized]?.explorerUrl,
-      },
-    }));
-    activeVerificationsRef.current[normalized] = true;
-    void attempt(maxAttempts);
-  }, [aptosAddress, maxAttempts, normalizeReference, scheduleAttempt]);
+  const updatePreferences = useCallback(
+    async (updates: { selectedNonprofit?: string | null; completedEffects?: string[]; effectsCompleted?: number }) => {
+      await updatePreferencesMutation.mutateAsync(updates);
+    },
+    [updatePreferencesMutation],
+  );
 
-  useEffect(() => {
-    if (!aptosAddress) return;
+  const recordDonationMetadata = useCallback(
+    async (payload: { hash: string; causeName?: string | null; causeSlug?: string | null }) => {
+      await recordDonationMetadataMutation.mutateAsync(payload);
+    },
+    [recordDonationMetadataMutation],
+  );
 
-    const txHashRegex = /^0x[0-9a-f]+$/i;
-
-    receipts.forEach((receipt) => {
-      const normalizedReference = normalizeReference(receipt.reference);
-      if (!txHashRegex.test(normalizedReference)) return;
-
-      const journeyId = receiptJourneys[normalizedReference]
-        ?? (receipt.type === "Donation" ? "lend-and-donate@v1" : undefined);
+  const verifyReceipt = useCallback(
+    async (hash: string, journeyId: string) => {
+      if (!normalizedAddress) return;
+      if (!hash || !hash.toLowerCase().startsWith("0x")) return;
       if (!journeyId) return;
 
-      const existing = verificationResults[normalizedReference];
-      if (existing?.status === "verified" || existing?.status === "failed") {
-        return;
-      }
-      if (activeVerificationsRef.current[normalizedReference]) {
-        return;
+      const loweredHash = hash.toLowerCase();
+      const pollInterval = Number.isFinite(VERIFIER_POLL_INTERVAL_MS) && VERIFIER_POLL_INTERVAL_MS > 0
+        ? VERIFIER_POLL_INTERVAL_MS
+        : 5_000;
+
+      setReceiptVerifications((prev) => {
+        const existing = prev[loweredHash];
+        if (existing && ["verifying", "pending", "verified"].includes(existing.status)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [loweredHash]: { status: "verifying", explorerUrl: existing?.explorerUrl ?? null, message: null },
+        };
+      });
+
+      const params = new URLSearchParams({
+        user: normalizedAddress,
+        journey_id: journeyId,
+      });
+      const url = `/api/verify/${hash}?${params.toString()}`;
+      let lastExplorerUrl: string | null = null;
+
+      for (let attempt = 0; attempt < VERIFIER_MAX_ATTEMPTS; attempt += 1) {
+        try {
+          const response = await fetch(url, { headers: { Accept: "application/json" } });
+          if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || `Verification failed with status ${response.status}`);
+          }
+
+          const data = (await response.json()) as {
+            verified: boolean;
+            explorerUrl?: string;
+          };
+
+          if (data.explorerUrl) {
+            lastExplorerUrl = data.explorerUrl;
+          }
+
+          if (data.verified) {
+            setReceiptVerifications((prev) => ({
+              ...prev,
+              [loweredHash]: {
+                status: "verified",
+                explorerUrl: data.explorerUrl ?? lastExplorerUrl,
+                message: null,
+              },
+            }));
+            return;
+          }
+
+          setReceiptVerifications((prev) => ({
+            ...prev,
+            [loweredHash]: {
+              status: "pending",
+              explorerUrl: data.explorerUrl ?? lastExplorerUrl,
+              message: null,
+            },
+          }));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          const isFinalAttempt = attempt === VERIFIER_MAX_ATTEMPTS - 1;
+
+          setReceiptVerifications((prev) => ({
+            ...prev,
+            [loweredHash]: {
+              status: isFinalAttempt ? "failed" : "pending",
+              explorerUrl: prev[loweredHash]?.explorerUrl ?? lastExplorerUrl,
+              message,
+            },
+          }));
+
+          if (isFinalAttempt) {
+            return;
+          }
+        }
+
+        if (attempt < VERIFIER_MAX_ATTEMPTS - 1) {
+          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        }
       }
 
-      startVerification(normalizedReference, journeyId);
+      setReceiptVerifications((prev) => ({
+        ...prev,
+      [loweredHash]: {
+          status: "failed",
+          explorerUrl: prev[loweredHash]?.explorerUrl ?? lastExplorerUrl,
+          message: prev[loweredHash]?.message ?? "Unable to verify receipt on-chain.",
+        },
+      }));
+    },
+    [normalizedAddress],
+  );
+
+  const rawReceipts = useMemo<ReceiptBase[]>(
+    () => (normalizedAddress ? receiptsQuery.data ?? [] : []),
+    [normalizedAddress, receiptsQuery.data],
+  );
+
+  useEffect(() => {
+    if (!normalizedAddress) {
+      setReceiptVerifications({});
+    }
+  }, [normalizedAddress]);
+
+  useEffect(() => {
+    if (!normalizedAddress) return;
+
+    rawReceipts.forEach((receipt) => {
+      if (!receipt.hash || !receipt.hash.toLowerCase().startsWith("0x")) return;
+      if (!receipt.journeyId) return;
+
+      const status = receiptVerifications[receipt.hash.toLowerCase()]?.status;
+      if (!status || status === "idle") {
+        void verifyReceipt(receipt.hash, receipt.journeyId);
+      }
     });
-  }, [aptosAddress, receipts, receiptJourneys, startVerification, normalizeReference, verificationResults]);
+  }, [normalizedAddress, rawReceipts, receiptVerifications, verifyReceipt]);
 
-  const setEffectAData = (data: Partial<EffectAData>) => {
-    setEffectADataState(prev => ({ ...prev, ...data }));
-  };
+  const receipts = useMemo<ReceiptEntry[]>(
+    () =>
+      rawReceipts.map((receipt) => {
+        const hash = receipt.hash ? receipt.hash.toLowerCase() : "";
+        const verification = hash ? receiptVerifications[hash] : undefined;
+        const status = verification?.status ?? (receipt.hash ? "idle" : "idle");
+        return {
+          ...receipt,
+          verified: status === "verified",
+          explorerUrl: verification?.explorerUrl ?? null,
+          verificationStatus: status,
+          verificationMessage: verification?.message ?? null,
+        };
+      }),
+    [rawReceipts, receiptVerifications],
+  );
 
-  const resetEffectAData = () => {
+  const setEffectAData = useCallback((data: Partial<EffectAData>) => {
+    setEffectADataState((prev) => ({ ...prev, ...data }));
+  }, []);
+
+  const resetEffectAData = useCallback(() => {
     setEffectADataState(initialEffectAData);
-  };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
       resetEffectAData();
-      queryClient.clear();
+      setReceiptVerifications({});
+      queryClient.removeQueries({ queryKey: ["/api/portfolio"] });
+      queryClient.removeQueries({ queryKey: ["/api/receipts"] });
     }
-  }, [isAuthenticated, queryClient]);
+  }, [isAuthenticated, queryClient, resetEffectAData]);
 
   const value: PortfolioContextType = {
-    portfolio: portfolio || null,
+    portfolio: (normalizedAddress ? portfolioQuery.data ?? null : null),
     receipts,
-    nonprofits,
+    nonprofits: nonprofitsQuery.data ?? [],
     effectAData,
-    isLoading: portfolioLoading,
-    verificationResults,
-    updatePortfolio,
-    createReceipt,
-    registerReceiptJourney,
+    isLoading:
+      Boolean(normalizedAddress) &&
+      (portfolioQuery.isLoading || receiptsQuery.isLoading || nonprofitsQuery.isLoading),
+    refreshPortfolio,
+    refreshReceipts,
+    updatePreferences,
+    recordDonationMetadata,
+    verifyReceipt,
     setEffectAData,
     resetEffectAData,
   };
 
-  return (
-    <PortfolioContext.Provider value={value}>
-      {children}
-    </PortfolioContext.Provider>
-  );
+  return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
 }
 
 export function usePortfolio() {
   const context = useContext(PortfolioContext);
   if (context === undefined) {
-    throw new Error('usePortfolio must be used within a PortfolioProvider');
+    throw new Error("usePortfolio must be used within a PortfolioProvider");
   }
   return context;
 }

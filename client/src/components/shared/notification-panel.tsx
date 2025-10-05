@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { Portfolio } from "@shared/schema";
+import type { PortfolioSnapshot } from "@/contexts/portfolio-context";
 
 interface NotificationPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  portfolio: Portfolio | null;
+  portfolio: PortfolioSnapshot | null;
 }
 
 export function NotificationPanel({ isOpen, onClose, portfolio }: NotificationPanelProps) {

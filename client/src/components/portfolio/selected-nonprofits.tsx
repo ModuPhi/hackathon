@@ -6,7 +6,10 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 export function SelectedNonprofits() {
   const { portfolio, nonprofits } = usePortfolio();
 
-  const selectedNonprofit = nonprofits.find(np => np.id === portfolio?.selectedNonprofit);
+  const selectedNonprofit = nonprofits.find((np) => {
+    if (!portfolio?.selectedNonprofit) return false;
+    return np.id === portfolio.selectedNonprofit || np.slug === portfolio.selectedNonprofit;
+  });
 
   if (!selectedNonprofit) {
     return (
@@ -22,7 +25,7 @@ export function SelectedNonprofits() {
   }
 
   return (
-    <Card className="overflow-hidden" data-testid={`selected-nonprofit-${selectedNonprofit.id}`}>
+    <Card className="overflow-hidden" data-testid={`selected-nonprofit-${selectedNonprofit.id ?? selectedNonprofit.slug}`}>
       <div className="relative h-48 bg-muted">
         <img
           src={selectedNonprofit.imageUrl}

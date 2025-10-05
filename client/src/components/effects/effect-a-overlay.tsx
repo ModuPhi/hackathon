@@ -15,18 +15,9 @@ import { logAptosTransaction } from "@/lib/aptos-logger";
 import blockleadLogo from "@assets/blocklead.png";
 
 const APT_PRICE = 5.41;
-import type { Portfolio } from "@shared/schema";
 import type { Aptos } from "@aptos-labs/ts-sdk";
 
 const DONATION_LIVE_ENABLED = import.meta.env.VITE_DONATION_LIVE === "true";
-
-const NONPROFIT_NAME_TO_SLUG: Record<string, string> = {
-  "Education for All": "education-for-all",
-  "Clean Water Initiative": "clean-water-initiative",
-  "Community Health Partners": "community-health-partners",
-  "Global Education Fund": "global-education-fund",
-  "Rural Medical Access": "rural-medical-access",
-};
 
 interface KeylessRuntime {
   address: string;
@@ -41,11 +32,13 @@ interface EffectAOverlayProps {
   onJourneyStart?: () => void;
   onJourneyComplete?: () => void;
   onJourneyAbort?: (reason?: string) => void;
-  updatePortfolioOverride?: (updates: Partial<Portfolio>) => Promise<void>;
-  createReceiptOverride?: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void>;
   journeyId?: string;
   keylessRuntime?: KeylessRuntime;
   aptosClient?: Aptos;
+  updatePreferencesOverride?: (updates: { selectedNonprofit?: string | null; completedEffects?: string[]; effectsCompleted?: number }) => Promise<void>;
+  recordDonationMetadataOverride?: (payload: { hash: string; causeName?: string | null; causeSlug?: string | null }) => Promise<void>;
+  refreshPortfolio?: () => Promise<void>;
+  refreshReceipts?: () => Promise<void>;
 }
 
 type Step = 'amount-selection' | 'overview' | 'step1' | 'step2' | 'step3' | 'step4' | 'success';
@@ -56,11 +49,13 @@ export function EffectAOverlay({
   onJourneyStart,
   onJourneyComplete,
   onJourneyAbort,
-  updatePortfolioOverride,
-  createReceiptOverride,
   journeyId,
   keylessRuntime,
   aptosClient,
+  updatePreferencesOverride,
+  recordDonationMetadataOverride,
+  refreshPortfolio: refreshPortfolioOverride,
+  refreshReceipts: refreshReceiptsOverride,
 }: EffectAOverlayProps) {
   const [currentStep, setCurrentStep] = useState<Step>('amount-selection');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -73,13 +68,18 @@ export function EffectAOverlay({
   
   const {
     portfolio,
-    updatePortfolio: updatePortfolioContext,
-    createReceipt: createReceiptContext,
+    updatePreferences,
+    recordDonationMetadata,
+    refreshPortfolio: contextRefreshPortfolio,
+    refreshReceipts: contextRefreshReceipts,
+    verifyReceipt,
     setEffectAData,
     nonprofits,
   } = usePortfolio();
-  const updatePortfolioHandler = updatePortfolioOverride ?? updatePortfolioContext;
-  const createReceiptHandler = createReceiptOverride ?? createReceiptContext;
+  const updatePreferencesHandler = updatePreferencesOverride ?? updatePreferences;
+  const recordDonationMetadataHandler = recordDonationMetadataOverride ?? recordDonationMetadata;
+  const refreshPortfolioHandler = refreshPortfolioOverride ?? contextRefreshPortfolio;
+  const refreshReceiptsHandler = refreshReceiptsOverride ?? contextRefreshReceipts;
   const { toast } = useToast();
   const liveDonationActive = useMemo(
     () => DONATION_LIVE_ENABLED && Boolean(keylessRuntime?.address && keylessRuntime?.signAndSubmitTransaction && aptosClient),
@@ -113,6 +113,8 @@ export function EffectAOverlay({
   const notifyJourneyAbort = (reason?: string) => {
     onJourneyAbort?.(reason);
   };
+
+  const resolvedJourneyId = journeyId ?? "lend-and-donate@v1";
 
   useEffect(() => {
     if (isOpen) {
@@ -170,11 +172,6 @@ export function EffectAOverlay({
   const handleStep1Confirm = async () => {
     if (!portfolio) return;
     
-    await updatePortfolioHandler({
-      credits: portfolio.credits - allocatedAmount,
-      usdc: calculatedData.step1.usdcReceived
-    });
-    
     toast({
       title: "Converted to USDC. Fee applied.",
       duration: 3000
@@ -186,11 +183,6 @@ export function EffectAOverlay({
   const handleStep2Confirm = async () => {
     if (!portfolio) return;
     
-    await updatePortfolioHandler({
-      usdc: 0,
-      apt: calculatedData.step2.aptReceived
-    });
-    
     toast({
       title: "Swapped to APT.",
       duration: 3000
@@ -201,12 +193,6 @@ export function EffectAOverlay({
 
   const handleStep3Confirm = async () => {
     if (!portfolio) return;
-    
-    await updatePortfolioHandler({
-      debt: borrowMetrics.borrowed,
-      usdc: borrowMetrics.borrowed,
-      healthFactor: borrowMetrics.healthFactor
-    });
     
     toast({
       title: "Loan opened.",
@@ -220,22 +206,26 @@ export function EffectAOverlay({
   const handleStep4Confirm = async () => {
     if (!portfolio) return;
 
-    const selectedNonprofit = nonprofits.find((np) => portfolio.selectedNonprofit === np.id);
-    const causeSlug = selectedNonprofit ? NONPROFIT_NAME_TO_SLUG[selectedNonprofit.name] ?? "education-for-all" : "education-for-all";
+    const selectedNonprofit = nonprofits.find((np) => {
+      const slugMatch = portfolio.selectedNonprofit === np.slug;
+      const idMatch = np.id ? portfolio.selectedNonprofit === np.id : false;
+      return slugMatch || idMatch;
+    });
+    const causeSlug = selectedNonprofit?.slug ?? portfolio.selectedNonprofit ?? "education-for-all";
 
     let receiptReference = "MOCK-TX-001";
 
     if (liveDonationActive) {
-    if (liveDonationActive && chainAddressesStatus === "pending") {
-      toast({ title: "Preparing network", description: "Fetching chain addresses. Please try again in a moment.", variant: "default" });
-      void refetchChainAddresses();
-      return;
-    }
+      if (chainAddressesStatus === "pending") {
+        toast({ title: "Preparing network", description: "Fetching chain addresses. Please try again in a moment.", variant: "default" });
+        void refetchChainAddresses();
+        return;
+      }
 
-    if (!chainAddresses) {
-      toast({ title: "Network not ready", description: "Chain addresses unavailable. Please try again in a moment.", variant: "destructive" });
-      return;
-    }
+      if (!chainAddresses) {
+        toast({ title: "Network not ready", description: "Chain addresses unavailable. Please try again in a moment.", variant: "destructive" });
+        return;
+      }
 
       if (!keylessRuntime?.signAndSubmitTransaction || !keylessRuntime.address || !aptosClient) {
         toast({ title: "Wallet unavailable", description: "Reconnect your session before sending a live donation.", variant: "destructive" });
@@ -250,42 +240,6 @@ export function EffectAOverlay({
       }
 
       const functionId = `${chainAddresses.tenantAddress}::user_vault::donate` as `${string}::${string}::${string}`;
-
-      try {
-        const ensureVaultTxn = await aptosClient.transaction.build.simple({
-          sender: keylessRuntime.address,
-          data: {
-            function: `${chainAddresses.tenantAddress}::user_vault::ensure_user_vault`,
-            typeArguments: [],
-            functionArguments: [],
-          },
-        });
-        const ensureHash = await keylessRuntime.signAndSubmitTransaction(ensureVaultTxn);
-        await aptosClient.waitForTransaction({ transactionHash: ensureHash });
-      } catch (error) {
-        console.warn("Ensure vault failed", error);
-      }
-
-      try {
-        const response = await fetch("/api/chain/bootstrap-vault", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address: keylessRuntime.address }),
-        });
-        if (!response.ok) {
-          const message = await response.text();
-          throw new Error(message || `Bootstrap request failed (${response.status})`);
-        }
-      } catch (error) {
-        console.error("Vault funding failed", error);
-        toast({
-          title: "Funding incomplete",
-          description: "We couldn’t top up your donation vault. Please try again.",
-          variant: "destructive",
-        });
-        notifyJourneyAbort("vault-funding-failed");
-        return;
-      }
 
       try {
         const transaction = await aptosClient.transaction.build.simple({
@@ -314,23 +268,27 @@ export function EffectAOverlay({
     }
 
     const completedEffects = portfolio.completedEffects || [];
-    const updateData: any = {
-      usdc: portfolio.usdc - donationAmount,
-    };
+    const updates: { completedEffects?: string[]; effectsCompleted?: number } = {};
 
     if (!completedEffects.includes('effect-a')) {
-      updateData.completedEffects = [...completedEffects, 'effect-a'];
-      updateData.effectsCompleted = portfolio.effectsCompleted + 1;
+      updates.completedEffects = [...completedEffects, 'effect-a'];
+      updates.effectsCompleted = portfolio.effectsCompleted + 1;
     }
 
-    await updatePortfolioHandler(updateData);
+    if (Object.keys(updates).length > 0) {
+      await updatePreferencesHandler(updates);
+    }
 
-    await createReceiptHandler({
-      type: "Donation",
-      amount: donationAmount,
-      cause: selectedNonprofit?.name || undefined,
-      reference: receiptReference,
-    });
+    if (receiptReference.startsWith("0x")) {
+      await recordDonationMetadataHandler({
+        hash: receiptReference,
+        causeName: selectedNonprofit?.name ?? null,
+        causeSlug,
+      });
+      await refreshReceiptsHandler();
+      await refreshPortfolioHandler();
+      void verifyReceipt(receiptReference, resolvedJourneyId);
+    }
 
     setCurrentStep('success');
     notifyJourneyComplete();

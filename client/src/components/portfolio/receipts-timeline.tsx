@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { useChainAddresses } from "@/hooks/use-chain-addresses";
 import { formatNumber } from "@/lib/portfolio-calculations";
 
 export function ReceiptsTimeline() {
-  const { receipts, verificationResults } = usePortfolio();
-  const txHashRegex = /^0x[0-9a-f]+$/i;
+  const { receipts } = usePortfolio();
+  const { data: chainAddresses } = useChainAddresses(false);
 
   return (
     <Card>
@@ -44,60 +45,88 @@ export function ReceiptsTimeline() {
               ) : (
                 receipts.map((receipt, index) => (
                   <tr 
-                    key={receipt.id} 
+                    key={receipt.hash || index} 
                     className="hover:bg-muted/50 transition-smooth"
                     data-testid={`receipt-row-${index}`}
                   >
                     <td className="px-4 py-3 text-sm text-foreground font-medium">
-                      {receipt.type}
+                      Donation
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">
                       {formatNumber(receipt.amount)}
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">
-                      {receipt.cause || '-'}
+                      {receipt.causeName || receipt.causeSlug || "-"}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground font-mono">
-                      {receipt.reference}
+                      {(() => {
+                        if (!receipt.hash) return "-";
+                        const explorerUrl =
+                          receipt.explorerUrl ??
+                          (chainAddresses?.explorerBase
+                            ? `${chainAddresses.explorerBase}/txn/${receipt.hash}?network=${chainAddresses.network}`
+                            : null);
+                        if (!explorerUrl) {
+                          return receipt.hash;
+                        }
+                        return (
+                          <a
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline"
+                          >
+                            {receipt.hash.slice(0, 10)}…
+                          </a>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {receipt.createdAt.toLocaleString()}
+                      {receipt.timestamp ? new Date(receipt.timestamp).toLocaleString() : "-"}
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">
                       {(() => {
-                        const normalizedRef = receipt.reference.trim().toLowerCase();
-                        const verification = verificationResults[normalizedRef];
-                        const isTxHash = txHashRegex.test(normalizedRef);
-
-                        if (verification?.status === "verified") {
-                          return (
-                            <Badge className="bg-success text-success-foreground">
-                              Verified on-chain
-                            </Badge>
-                          );
+                        if (!receipt.hash) {
+                          return <span className="text-xs text-muted-foreground">—</span>;
                         }
 
-                        if (isTxHash) {
-                          const explorerUrl = verification?.explorerUrl;
+                        const explorerUrl =
+                          receipt.explorerUrl ??
+                          (chainAddresses?.explorerBase
+                            ? `${chainAddresses.explorerBase}/txn/${receipt.hash}?network=${chainAddresses.network}`
+                            : null);
+
+                        if (receipt.verified) {
+                          return <Badge className="bg-success text-success-foreground">Verified on-chain</Badge>;
+                        }
+
+                        if (receipt.verificationStatus === "failed") {
                           return (
-                            <span className="text-xs text-muted-foreground">
-                              Awaiting confirmation — {explorerUrl ? (
-                                <a
-                                  href={explorerUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="underline"
-                                >
-                                  view on Explorer
-                                </a>
-                              ) : (
-                                "view on Explorer"
-                              )}
+                            <span className="text-xs text-destructive">
+                              {receipt.verificationMessage ?? "Verification unavailable"}
+                              {explorerUrl ? (
+                                <>
+                                  {" — "}
+                                  <a className="underline" href={explorerUrl} target="_blank" rel="noreferrer">
+                                    view on Explorer
+                                  </a>
+                                </>
+                              ) : null}
                             </span>
                           );
                         }
 
-                        return <span className="text-xs text-muted-foreground">—</span>;
+                        return (
+                          <span className="text-xs text-muted-foreground">
+                            Awaiting confirmation — {explorerUrl ? (
+                              <a className="underline" href={explorerUrl} target="_blank" rel="noreferrer">
+                                view on Explorer
+                              </a>
+                            ) : (
+                              "view on Explorer"
+                            )}
+                          </span>
+                        );
                       })()}
                     </td>
                   </tr>

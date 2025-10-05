@@ -6,7 +6,6 @@ const SLUG = "lend-and-donate";
 export default function EffectAJourney({
   isOpen,
   onClose,
-  capabilities,
   telemetry,
   journeyId,
   keyless,
@@ -19,8 +18,6 @@ export default function EffectAJourney({
       onJourneyStart={() => telemetry.onStart(SLUG)}
       onJourneyComplete={() => telemetry.onComplete(SLUG)}
       onJourneyAbort={(reason) => telemetry.onAbort(SLUG, reason)}
-      updatePortfolioOverride={capabilities.portfolio.merge}
-      createReceiptOverride={capabilities.receipts.create}
       journeyId={journeyId}
       keylessRuntime={keyless}
       aptosClient={aptosClient}

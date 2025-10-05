@@ -1,0 +1,42 @@
+[
+  {
+    "slug": "education-for-all",
+    "name": "Education for All",
+    "description": "Providing quality education and school supplies to underserved communities. Supporting teachers and students with resources to build a brighter future.",
+    "location": "Kenya",
+    "imageUrl": "/attached_assets/stock_images/african_children_in__57942581.jpg",
+    "category": "Education"
+  },
+  {
+    "slug": "clean-water-initiative",
+    "name": "Clean Water Initiative",
+    "description": "Building wells and water systems to bring clean, safe drinking water to rural villages. Improving health and quality of life through sustainable water solutions.",
+    "location": "Uganda",
+    "imageUrl": "/attached_assets/stock_images/water_well_clean_dri_0866cc79.jpg",
+    "category": "Water & Sanitation"
+  },
+  {
+    "slug": "community-health-partners",
+    "name": "Community Health Partners",
+    "description": "Delivering essential healthcare services and medical supplies to remote areas. Training local health workers to serve their communities effectively.",
+    "location": "Philippines",
+    "imageUrl": "/attached_assets/stock_images/medical_clinic_healt_ce9c0787.jpg",
+    "category": "Healthcare"
+  },
+  {
+    "slug": "global-education-fund",
+    "name": "Global Education Fund",
+    "description": "Building schools and training teachers in developing regions. Providing scholarships and learning materials to children who lack access to education.",
+    "location": "Guatemala",
+    "imageUrl": "/attached_assets/stock_images/guatemala_school_edu_961fd966.jpg",
+    "category": "Education"
+  },
+  {
+    "slug": "rural-medical-access",
+    "name": "Rural Medical Access",
+    "description": "Operating mobile clinics and health centers in underserved regions. Providing free medical care, vaccinations, and health education to families in need.",
+    "location": "India",
+    "imageUrl": "/attached_assets/stock_images/rural_india_medical__9ba7bd82.jpg",
+    "category": "Healthcare"
+  }
+]

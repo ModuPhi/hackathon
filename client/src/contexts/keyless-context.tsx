@@ -17,6 +17,8 @@ import {
   type ProofFetchStatus,
 } from "@aptos-labs/ts-sdk";
 import { queryClient } from "../lib/queryClient";
+import { logAptosTransaction } from "../lib/aptos-logger";
+import fallbackChainAddresses from "../data/default-chain-addresses.json";
 
 type SessionUser = {
   sub: string;
@@ -49,6 +51,14 @@ type KeylessContextValue = {
   logout: () => void;
 };
 
+type ChainAddresses = {
+  network: string;
+  restUrl?: string;
+  tenantAddress: string;
+  usdcMetadataAddress: string;
+  explorerBase?: string;
+};
+
 const DEFAULT_TENANT: SessionTenant = { id: "default-tenant" };
 const STORAGE_KEY = "keyless_state_v1";
 
@@ -64,6 +74,32 @@ const KeylessContext = createContext<KeylessContextValue | undefined>(undefined)
 const textEncoder = new TextEncoder();
 
 const isBrowser = typeof window !== "undefined";
+
+async function loadChainAddresses(): Promise<ChainAddresses> {
+  try {
+    const response = await fetch("/api/chain/addresses", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as Partial<ChainAddresses>;
+      if (data?.tenantAddress) {
+        return {
+          network: data.network ?? fallbackChainAddresses.network,
+          restUrl: data.restUrl ?? fallbackChainAddresses.restUrl,
+          tenantAddress: data.tenantAddress,
+          usdcMetadataAddress: data.usdcMetadataAddress ?? fallbackChainAddresses.usdcMetadataAddress,
+          explorerBase: data.explorerBase ?? fallbackChainAddresses.explorerBase,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to retrieve chain addresses", error);
+  }
+
+  return fallbackChainAddresses;
+}
 
 function normalizeBase64Url(input: string): string {
   const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -226,6 +262,89 @@ export function KeylessProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setStoredState({}, { replace: true });
   }, [setStoredState]);
+
+  const bootstrapVaultForAddress = useCallback(
+    async (address: string) => {
+      if (!session) return;
+
+      try {
+        const chainAddresses = await loadChainAddresses();
+        const ensureFunctionId = `${chainAddresses.tenantAddress}::user_vault::ensure_user_vault` as const;
+
+        try {
+          const transaction = await aptosClient.transaction.build.simple({
+            sender: session.account.accountAddress,
+            data: {
+              function: ensureFunctionId,
+              typeArguments: [],
+              functionArguments: [],
+            },
+          });
+
+          const pending = await aptosClient.transaction.signAndSubmitTransaction({
+            signer: session.account,
+            transaction,
+          });
+
+          logAptosTransaction(ensureFunctionId, pending.hash);
+          await aptosClient.waitForTransaction({ transactionHash: pending.hash });
+        } catch (error) {
+          console.warn("ensure_user_vault call failed", error);
+        }
+
+        try {
+          const response = await fetch("/api/chain/bootstrap-vault", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address }),
+          });
+
+        if (response.ok) {
+          const payload = (await response.json()) as {
+            reason?: string;
+            transactions?: { mint?: string; fund?: string };
+          };
+          const mintHash = payload?.transactions?.mint;
+          const fundHash = payload?.transactions?.fund;
+
+          if (mintHash) {
+            logAptosTransaction(
+              `${chainAddresses.tenantAddress}::usdc_demo::faucet_mint`,
+              mintHash,
+            );
+          }
+          if (fundHash) {
+            logAptosTransaction(
+              `${chainAddresses.tenantAddress}::user_vault::fund_user_vault`,
+              fundHash,
+            );
+          }
+
+          if (payload?.reason === "tenant_not_configured") {
+            console.warn("Tenant private key not configured; using demo balances only.");
+            return;
+          }
+        } else {
+          const message = await response.text();
+          console.warn(
+            "Bootstrap vault request failed",
+            response.status,
+              message || response.statusText,
+            );
+          }
+        } catch (error) {
+          console.warn("Bootstrap vault request errored", error);
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: ["/api/portfolio", address.toLowerCase()],
+        });
+      } catch (error) {
+        console.warn("Vault bootstrap sequence failed", error);
+      }
+    },
+    [aptosClient, queryClient, session],
+  );
 
   const processIdToken = useCallback(
     async (idToken: string, returnedState: string | null) => {
@@ -478,22 +597,9 @@ export function KeylessProvider({ children }: { children: React.ReactNode }) {
     ensuredVaultForAddressRef.current = address;
 
     (async () => {
-      try {
-        const response = await fetch("/api/chain/bootstrap-vault", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address }),
-        });
-
-        if (!response.ok) {
-          const message = await response.text();
-          console.warn("Failed to bootstrap user vault", response.status, message);
-        }
-      } catch (error) {
-        console.warn("Error bootstrapping user vault", error);
-      }
+      await bootstrapVaultForAddress(address);
     })();
-  }, [session?.aptosAddress]);
+  }, [bootstrapVaultForAddress, session?.aptosAddress]);
 
   return <KeylessContext.Provider value={value}>{children}</KeylessContext.Provider>;
 }

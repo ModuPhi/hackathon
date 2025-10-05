@@ -16,7 +16,7 @@ type Screen = 'welcome' | 'platform' | 'learning' | 'completion';
 
 export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps) {
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
-  const { portfolio, updatePortfolio } = usePortfolio();
+  const { portfolio, updatePreferences } = usePortfolio();
   const { toast } = useToast();
 
   const handleComplete = async () => {
@@ -24,9 +24,9 @@ export function IntroEffectOverlay({ isOpen, onClose }: IntroEffectOverlayProps)
 
     const completedEffects = portfolio.completedEffects || [];
     if (!completedEffects.includes('intro')) {
-      await updatePortfolio({
+      await updatePreferences({
         completedEffects: [...completedEffects, 'intro'],
-        effectsCompleted: portfolio.effectsCompleted + 1
+        effectsCompleted: portfolio.effectsCompleted + 1,
       });
     }
 

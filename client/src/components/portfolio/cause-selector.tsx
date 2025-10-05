@@ -8,27 +8,27 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 
 export function CauseSelector() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { portfolio, nonprofits, updatePortfolio } = usePortfolio();
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const { portfolio, nonprofits, updatePreferences } = usePortfolio();
 
   useEffect(() => {
     if (portfolio?.selectedNonprofit) {
-      setSelectedId(portfolio.selectedNonprofit);
+      setSelectedSlug(portfolio.selectedNonprofit);
+    } else {
+      setSelectedSlug(null);
     }
   }, [portfolio?.selectedNonprofit]);
 
-  const handleSelect = (nonprofitId: string) => {
-    setSelectedId(nonprofitId === selectedId ? null : nonprofitId);
+  const handleSelect = (slug: string) => {
+    setSelectedSlug((prev) => (prev === slug ? null : slug));
   };
 
   const handleSave = async () => {
-    if (portfolio) {
-      await updatePortfolio({ selectedNonprofit: selectedId });
-      setIsOpen(false);
-    }
+    await updatePreferences({ selectedNonprofit: selectedSlug ?? null });
+    setIsOpen(false);
   };
 
-  const selectedNonprofit = nonprofits.find(np => np.id === portfolio?.selectedNonprofit);
+  const selectedNonprofit = nonprofits.find((np) => np.slug === portfolio?.selectedNonprofit);
 
   return (
     <div>
@@ -38,7 +38,7 @@ export function CauseSelector() {
         data-testid="choose-cause-btn"
       >
         <Heart className="w-5 h-5 mr-2" />
-        {selectedNonprofit ? selectedNonprofit.name : 'Choose a nonprofit'}
+        {selectedNonprofit ? selectedNonprofit.name : "Choose a nonprofit"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -62,68 +62,70 @@ export function CauseSelector() {
               </Button>
             </div>
           </DialogHeader>
-          
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
             {nonprofits.map((nonprofit) => {
-              const isSelected = selectedId === nonprofit.id;
-              
+              const isSelected = selectedSlug === nonprofit.slug;
               return (
                 <div
-                  key={nonprofit.id}
+                  key={nonprofit.slug}
                   className={`relative border rounded-lg overflow-hidden transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'border-primary shadow-md ring-2 ring-primary ring-opacity-50' 
-                      : 'border-border hover:border-primary hover:shadow-sm'
+                    isSelected
+                      ? "border-primary shadow-md ring-2 ring-primary ring-opacity-50"
+                      : "border-border hover:border-primary hover:shadow-sm"
                   }`}
-                  onClick={() => handleSelect(nonprofit.id)}
-                  data-testid={`nonprofit-card-${nonprofit.id}`}
+                  onClick={() => handleSelect(nonprofit.slug)}
+                  data-testid={`nonprofit-card-${nonprofit.slug}`}
                 >
                   <div className="relative h-40 bg-muted">
-                    <img
-                      src={nonprofit.imageUrl}
-                      alt={nonprofit.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div 
+                    {nonprofit.imageUrl && (
+                      <img
+                        src={nonprofit.imageUrl}
+                        alt={nonprofit.name}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div
                       className="absolute top-2 left-2"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSelect(nonprofit.id);
+                        handleSelect(nonprofit.slug);
                       }}
                     >
                       <Checkbox
                         checked={isSelected}
                         className="bg-white border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        data-testid={`checkbox-${nonprofit.id}`}
+                        data-testid={`checkbox-${nonprofit.slug}`}
                       />
                     </div>
                   </div>
-                  
+
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-foreground line-clamp-1">
-                        {nonprofit.name}
-                      </h3>
+                      <h3 className="font-semibold text-foreground line-clamp-1">{nonprofit.name}</h3>
+                      {nonprofit.verified === 1 && (
+                        <Badge variant="outline" className="text-xs">Verified</Badge>
+                      )}
                     </div>
-                    
+
                     <div className="flex items-center text-xs text-muted-foreground mb-2">
                       <MapPin className="w-3 h-3 mr-1" />
-                      {nonprofit.location}
+                      {nonprofit.location || "Global"}
                     </div>
-                    
+
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {nonprofit.description}
                     </p>
-                    
+
                     <Badge variant="outline" className="text-xs">
-                      {nonprofit.category}
+                      {nonprofit.category || "Nonprofit"}
                     </Badge>
                   </div>
                 </div>
               );
             })}
           </div>
-          
+
           <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
             <Button
               variant="outline"
@@ -134,10 +136,10 @@ export function CauseSelector() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!selectedId}
+              disabled={!selectedSlug}
               data-testid="save-cause-btn"
             >
-              {selectedId ? 'Save selection' : 'Select a nonprofit'}
+              {selectedSlug ? "Save selection" : "Select a nonprofit"}
             </Button>
           </div>
         </DialogContent>

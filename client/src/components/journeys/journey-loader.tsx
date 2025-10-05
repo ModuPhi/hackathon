@@ -31,10 +31,11 @@ export type JourneyComponentProps = {
   aptos: { client: Aptos };
   aptosClient: Aptos;
   availableLiquidity: number;
-  capabilities: {
-    portfolio: { merge: (updates: Partial<Portfolio>) => Promise<void> };
-    receipts: { create: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void> };
-    donate?: { execute?: (...args: unknown[]) => Promise<void> };
+  helpers?: {
+    updatePreferences: (updates: { selectedNonprofit?: string | null; completedEffects?: string[]; effectsCompleted?: number }) => Promise<void>;
+    recordDonationMetadata: (payload: { hash: string; causeName?: string | null; causeSlug?: string | null }) => Promise<void>;
+    refreshPortfolio: () => Promise<void>;
+    refreshReceipts: () => Promise<void>;
   };
   telemetry: {
     onStart: (slug: string) => Promise<void>;
@@ -194,7 +195,13 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
     signAndSubmitTransaction,
     aptosClient,
   } = useKeyless();
-  const { updatePortfolio, createReceipt, portfolio, registerReceiptJourney } = usePortfolio();
+  const {
+    portfolio,
+    updatePreferences,
+    recordDonationMetadata,
+    refreshPortfolio,
+    refreshReceipts,
+  } = usePortfolio();
   const { refetch: refetchRuns } = useJourneyRuns();
   const [component, setComponent] = useState<ComponentType<JourneyComponentProps> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -281,14 +288,12 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
   const journeyId = useMemo(() => (journey ? `${journey.slug}@v1` : ""), [journey]);
   const availableLiquidity = useMemo(() => portfolio?.credits ?? 0, [portfolio]);
 
-  const createReceiptWithJourney = useCallback(async (
-    receipt: { type: string; amount: number; cause?: string; reference: string },
-  ) => {
-    await createReceipt(receipt);
-    if (journeyId) {
-      registerReceiptJourney(receipt.reference, journeyId);
-    }
-  }, [createReceipt, journeyId, registerReceiptJourney]);
+  const helpers = useMemo(() => ({
+    updatePreferences,
+    recordDonationMetadata,
+    refreshPortfolio,
+    refreshReceipts,
+  }), [updatePreferences, recordDonationMetadata, refreshPortfolio, refreshReceipts]);
 
   useEffect(() => {
     if (!isOpen || !journey) {
@@ -371,16 +376,6 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
     signAndSubmitTransaction,
   };
 
-  const capabilities = {
-    portfolio: {
-      merge: updatePortfolio,
-    },
-    receipts: {
-      create: createReceiptWithJourney,
-    },
-    donate: {},
-  };
-
   const fallback = (
     <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center px-4">
       <Card className="max-w-md w-full">
@@ -438,7 +433,7 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
         aptos={{ client: aptosClient }}
         aptosClient={aptosClient}
         availableLiquidity={availableLiquidity}
-        capabilities={capabilities}
+        helpers={helpers}
         telemetry={telemetry}
       />
     </JourneyErrorBoundary>

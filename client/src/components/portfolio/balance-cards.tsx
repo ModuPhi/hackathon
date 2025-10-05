@@ -86,9 +86,7 @@ export function BalanceCards() {
   }
 
   // Calculate cumulative donations from receipts
-  const totalDonated = receipts
-    .filter(receipt => receipt.type === "Donation")
-    .reduce((sum, receipt) => sum + receipt.amount, 0);
+  const totalDonated = portfolio.donatedTotal ?? receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
 
   // Calculate invested assets (APT value)
   const investedAssets = portfolio.apt;
