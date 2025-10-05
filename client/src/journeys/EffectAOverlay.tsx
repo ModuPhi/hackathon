@@ -3,7 +3,15 @@ import type { JourneyComponentProps } from "@/components/journeys/journey-loader
 
 const SLUG = "lend-and-donate";
 
-export default function EffectAJourney({ isOpen, onClose, capabilities, telemetry }: JourneyComponentProps) {
+export default function EffectAJourney({
+  isOpen,
+  onClose,
+  capabilities,
+  telemetry,
+  journeyId,
+  keyless,
+  aptosClient,
+}: JourneyComponentProps) {
   return (
     <EffectAOverlay
       isOpen={isOpen}
@@ -13,6 +21,9 @@ export default function EffectAJourney({ isOpen, onClose, capabilities, telemetr
       onJourneyAbort={(reason) => telemetry.onAbort(SLUG, reason)}
       updatePortfolioOverride={capabilities.portfolio.merge}
       createReceiptOverride={capabilities.receipts.create}
+      journeyId={journeyId}
+      keylessRuntime={keyless}
+      aptosClient={aptosClient}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,30 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { CancelConfirmDialog } from "@/components/shared/cancel-confirm-dialog";
 import { calculateEffectASteps, calculateBorrowMetrics, formatNumber, formatHealthFactor } from "@/lib/portfolio-calculations";
 import { useToast } from "@/hooks/use-toast";
+import { useChainAddresses } from "@/hooks/use-chain-addresses";
+import { logAptosTransaction } from "@/lib/aptos-logger";
 import blockleadLogo from "@assets/blocklead.png";
 
 const APT_PRICE = 5.41;
 import type { Portfolio } from "@shared/schema";
+import type { Aptos } from "@aptos-labs/ts-sdk";
+
+const DONATION_LIVE_ENABLED = import.meta.env.VITE_DONATION_LIVE === "true";
+
+const NONPROFIT_NAME_TO_SLUG: Record<string, string> = {
+  "Education for All": "education-for-all",
+  "Clean Water Initiative": "clean-water-initiative",
+  "Community Health Partners": "community-health-partners",
+  "Global Education Fund": "global-education-fund",
+  "Rural Medical Access": "rural-medical-access",
+};
+
+interface KeylessRuntime {
+  address: string;
+  signMessage?: (message: string | Uint8Array) => Promise<string>;
+  signTransaction?: (transaction: unknown) => Promise<string>;
+  signAndSubmitTransaction?: (transaction: unknown) => Promise<string>;
+}
 
 interface EffectAOverlayProps {
   isOpen: boolean;
@@ -23,6 +43,9 @@ interface EffectAOverlayProps {
   onJourneyAbort?: (reason?: string) => void;
   updatePortfolioOverride?: (updates: Partial<Portfolio>) => Promise<void>;
   createReceiptOverride?: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void>;
+  journeyId?: string;
+  keylessRuntime?: KeylessRuntime;
+  aptosClient?: Aptos;
 }
 
 type Step = 'amount-selection' | 'overview' | 'step1' | 'step2' | 'step3' | 'step4' | 'success';
@@ -35,6 +58,9 @@ export function EffectAOverlay({
   onJourneyAbort,
   updatePortfolioOverride,
   createReceiptOverride,
+  journeyId,
+  keylessRuntime,
+  aptosClient,
 }: EffectAOverlayProps) {
   const [currentStep, setCurrentStep] = useState<Step>('amount-selection');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -55,6 +81,15 @@ export function EffectAOverlay({
   const updatePortfolioHandler = updatePortfolioOverride ?? updatePortfolioContext;
   const createReceiptHandler = createReceiptOverride ?? createReceiptContext;
   const { toast } = useToast();
+  const liveDonationActive = useMemo(
+    () => DONATION_LIVE_ENABLED && Boolean(keylessRuntime?.address && keylessRuntime?.signAndSubmitTransaction && aptosClient),
+    [aptosClient, keylessRuntime],
+  );
+  const {
+    data: chainAddresses,
+    status: chainAddressesStatus,
+    refetch: refetchChainAddresses,
+  } = useChainAddresses(liveDonationActive);
 
   // Calculate all steps when component mounts or amount changes
   const calculatedData = calculateEffectASteps(allocatedAmount);
@@ -184,29 +219,119 @@ export function EffectAOverlay({
 
   const handleStep4Confirm = async () => {
     if (!portfolio) return;
-    
-    const selectedNonprofit = nonprofits.find(np => portfolio.selectedNonprofit === np.id);
-    
+
+    const selectedNonprofit = nonprofits.find((np) => portfolio.selectedNonprofit === np.id);
+    const causeSlug = selectedNonprofit ? NONPROFIT_NAME_TO_SLUG[selectedNonprofit.name] ?? "education-for-all" : "education-for-all";
+
+    let receiptReference = "MOCK-TX-001";
+
+    if (liveDonationActive) {
+    if (liveDonationActive && chainAddressesStatus === "pending") {
+      toast({ title: "Preparing network", description: "Fetching chain addresses. Please try again in a moment.", variant: "default" });
+      void refetchChainAddresses();
+      return;
+    }
+
+    if (!chainAddresses) {
+      toast({ title: "Network not ready", description: "Chain addresses unavailable. Please try again in a moment.", variant: "destructive" });
+      return;
+    }
+
+      if (!keylessRuntime?.signAndSubmitTransaction || !keylessRuntime.address || !aptosClient) {
+        toast({ title: "Wallet unavailable", description: "Reconnect your session before sending a live donation.", variant: "destructive" });
+        notifyJourneyAbort("keyless-missing");
+        return;
+      }
+
+      const amountMicro = Math.round(donationAmount * 1_000_000);
+      if (!Number.isFinite(amountMicro) || amountMicro <= 0) {
+        toast({ title: "Invalid amount", description: "Donation amount must be greater than zero.", variant: "destructive" });
+        return;
+      }
+
+      const functionId = `${chainAddresses.tenantAddress}::user_vault::donate` as `${string}::${string}::${string}`;
+
+      try {
+        const ensureVaultTxn = await aptosClient.transaction.build.simple({
+          sender: keylessRuntime.address,
+          data: {
+            function: `${chainAddresses.tenantAddress}::user_vault::ensure_user_vault`,
+            typeArguments: [],
+            functionArguments: [],
+          },
+        });
+        const ensureHash = await keylessRuntime.signAndSubmitTransaction(ensureVaultTxn);
+        await aptosClient.waitForTransaction({ transactionHash: ensureHash });
+      } catch (error) {
+        console.warn("Ensure vault failed", error);
+      }
+
+      try {
+        const response = await fetch("/api/chain/bootstrap-vault", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: keylessRuntime.address }),
+        });
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || `Bootstrap request failed (${response.status})`);
+        }
+      } catch (error) {
+        console.error("Vault funding failed", error);
+        toast({
+          title: "Funding incomplete",
+          description: "We couldn’t top up your donation vault. Please try again.",
+          variant: "destructive",
+        });
+        notifyJourneyAbort("vault-funding-failed");
+        return;
+      }
+
+      try {
+        const transaction = await aptosClient.transaction.build.simple({
+          sender: keylessRuntime.address,
+          data: {
+            function: functionId,
+            typeArguments: [],
+            functionArguments: [amountMicro.toString(), causeSlug],
+          },
+        });
+
+        const hash = await keylessRuntime.signAndSubmitTransaction(transaction);
+        await aptosClient.waitForTransaction({ transactionHash: hash });
+        logAptosTransaction(functionId, hash);
+        receiptReference = hash;
+      } catch (error) {
+        console.error("Live donation failed", error);
+        toast({
+          title: "Donation failed",
+          description: (error as Error)?.message ?? "We couldn’t submit the transaction. Please try again.",
+          variant: "destructive",
+        });
+        notifyJourneyAbort("donation-transaction-failed");
+        return;
+      }
+    }
+
     const completedEffects = portfolio.completedEffects || [];
     const updateData: any = {
       usdc: portfolio.usdc - donationAmount,
     };
-    
-    // Only increment if this effect hasn't been completed before
+
     if (!completedEffects.includes('effect-a')) {
       updateData.completedEffects = [...completedEffects, 'effect-a'];
       updateData.effectsCompleted = portfolio.effectsCompleted + 1;
     }
-    
+
     await updatePortfolioHandler(updateData);
 
     await createReceiptHandler({
       type: "Donation",
       amount: donationAmount,
       cause: selectedNonprofit?.name || undefined,
-      reference: "MOCK-TX-001"
+      reference: receiptReference,
     });
-    
+
     setCurrentStep('success');
     notifyJourneyComplete();
   };

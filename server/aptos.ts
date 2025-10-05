@@ -59,7 +59,7 @@ function isResourceNotFound(error: unknown): boolean {
 async function submitEntryFunction(args: {
   aptos: Aptos;
   account: Account;
-  functionId: string;
+  functionId: `${string}::${string}::${string}`;
   functionArguments: (string | number | boolean | string[])[];
 }) {
   const transaction = await args.aptos.transaction.build.simple({
@@ -186,4 +186,3 @@ export async function bootstrapUserVault(userAddressRaw: string): Promise<Bootst
 export async function ensureChainAddresses(): Promise<ChainAddresses> {
   return readChainAddresses();
 }
-

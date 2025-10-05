@@ -45,12 +45,13 @@ npm run deploy -- \
 ```
 
 The script will:
-1. Run Move unit tests
-2. Publish the `usdc_demo`, `nonprofit_registry`, `receipts`, and `user_vault` modules
-3. Initialize the dev USDC metadata, registry, and receipt event handle (skipped automatically if already initialized)
+1. Run Move unit tests (including the JourneyOutput emission test)
+2. Publish the `usdc_demo`, `nonprofit_registry`, `receipts`, `journey_audit`, and `user_vault` modules
+3. Initialize the dev USDC metadata, registry, receipt event handle, and `journey_audit` event handle (skipped automatically if already initialized)
 4. Register nonprofits from your config; if you omit them, profiles in `~/.aptos/config.yaml` (e.g. `education-for-all`) are added automatically
 5. Mint dev USDC into the tenant account (demo faucet)
 6. Update `server/data/addresses.json` and `.env` with the tenant and metadata addresses (and flip the live flags if you told it to)
+7. Persist the explorer base so the `/api/verify/:txHash` endpoint can generate deep links
 
 Common flags:
 - `--tenant-address 0x...` — supply the tenant address directly (script will resolve from the CLI profile otherwise)
@@ -94,6 +95,7 @@ aptos move publish --named-addresses dg_tenant=<TENANT_ADDRESS> --assume-yes
 aptos move run --function <TENANT_ADDRESS>::usdc_demo::init --assume-yes
 aptos move run --function <TENANT_ADDRESS>::nonprofit_registry::init --assume-yes
 aptos move run --function <TENANT_ADDRESS>::receipts::init --assume-yes
+aptos move run --function <TENANT_ADDRESS>::journey_audit::init --assume-yes
 aptos move run --function <TENANT_ADDRESS>::nonprofit_registry::set_cause --assume-yes --args vector<u8>:"education-for-all" address:<PAYOUT_ADDRESS>
 aptos move run --function <TENANT_ADDRESS>::usdc_demo::faucet_mint --assume-yes --args address:<TENANT_ADDRESS> u64:1000000000
 aptos move run --function <TENANT_ADDRESS>::user_vault::fund_user_vault --assume-yes --args address:<USER_ADDRESS> u64:1000000000

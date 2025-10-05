@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { journeyRunsRepo } from "./journeys";
 import { insertPortfolioSchema, insertReceiptSchema } from "@shared/schema";
 import { z } from "zod";
+import { ensureChainAddresses, bootstrapUserVault } from "./aptos";
+import { registerVerifyRoute } from "./routes/verify";
 
 const manifestPath = path.resolve(process.cwd(), "server", "data", "journeys.json");
 
@@ -31,6 +33,31 @@ function requireSession(req: Request) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const journeySlugSchema = z.object({ slug: z.string().min(1) });
+
+  app.get("/api/chain/addresses", async (_req, res) => {
+    try {
+      const addresses = await ensureChainAddresses();
+      res.json(addresses);
+    } catch (error) {
+      const status = typeof (error as any)?.status === "number" ? (error as any).status : 500;
+      res.status(status).json({ message: (error as any)?.message ?? "Failed to load chain addresses" });
+    }
+  });
+
+  app.post("/api/chain/bootstrap-vault", async (req, res) => {
+    const schema = z.object({ address: z.string().min(1) });
+    try {
+      const { address } = schema.parse(req.body);
+      const result = await bootstrapUserVault(address);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid payload", errors: error.errors });
+      }
+      const status = typeof (error as any)?.status === "number" ? (error as any).status : 500;
+      res.status(status).json({ message: (error as any)?.message ?? "Failed to bootstrap vault" });
+    }
+  });
 
   app.get("/api/journeys", async (_req, res) => {
     try {
@@ -214,6 +241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get nonprofits" });
     }
   });
+
+  registerVerifyRoute(app);
 
   const httpServer = createServer(app);
   return httpServer;

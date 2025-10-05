@@ -10,7 +10,8 @@
     "check": "tsc",
     "lint:journeys": "node scripts/check-journey-imports.mjs",
     "db:push": "drizzle-kit push",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "tsx scripts/deploy.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "^1.26.0",

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import fallbackAddresses from "@/data/default-chain-addresses.json";
 
 const chainAddressesSchema = z.object({
   network: z.string().min(1),
@@ -12,14 +13,24 @@ const chainAddressesSchema = z.object({
 export type ChainAddresses = z.infer<typeof chainAddressesSchema>;
 
 async function fetchChainAddresses(): Promise<ChainAddresses> {
-  const res = await fetch("/api/chain/addresses", { credentials: "include" });
-  if (!res.ok) {
-    const message = (await res.text()) || res.statusText;
-    throw new Error(message);
+  try {
+    const res = await fetch("/api/chain/addresses", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+
+    if (res.ok) {
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        return chainAddressesSchema.parse(data);
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch chain addresses", error);
   }
 
-  const data = await res.json();
-  return chainAddressesSchema.parse(data);
+  return chainAddressesSchema.parse(fallbackAddresses);
 }
 
 export function useChainAddresses(enabled = true) {

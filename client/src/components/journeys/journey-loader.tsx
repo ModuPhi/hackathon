@@ -15,20 +15,26 @@ import { usePortfolio } from "@/contexts/portfolio-context";
 import type { JourneyManifestEntry } from "@/types/journeys";
 import type { Portfolio } from "@shared/schema";
 import { useJourneyRuns } from "@/hooks/use-journey-runs";
+import type { Aptos } from "@aptos-labs/ts-sdk";
 
 export type JourneyComponentProps = {
   isOpen: boolean;
   onClose: () => void;
+  journeyId: string;
   auth: { userId: string; tenantId: string };
   keyless: {
     address: string;
     signMessage: (message: string | Uint8Array) => Promise<string>;
     signTransaction: (...args: any[]) => Promise<string>;
+    signAndSubmitTransaction: (...args: any[]) => Promise<string>;
   };
-  aptos: { client: any };
+  aptos: { client: Aptos };
+  aptosClient: Aptos;
+  availableLiquidity: number;
   capabilities: {
     portfolio: { merge: (updates: Partial<Portfolio>) => Promise<void> };
     receipts: { create: (receipt: { type: string; amount: number; cause?: string; reference: string }) => Promise<void> };
+    donate?: { execute?: (...args: unknown[]) => Promise<void> };
   };
   telemetry: {
     onStart: (slug: string) => Promise<void>;
@@ -178,8 +184,17 @@ class JourneyErrorBoundary extends Component<JourneyErrorBoundaryProps, JourneyE
 }
 
 export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) {
-  const { isAuthenticated, user, tenant, aptosAddress, signMessage, signTransaction, aptosClient } = useKeyless();
-  const { updatePortfolio, createReceipt } = usePortfolio();
+  const {
+    isAuthenticated,
+    user,
+    tenant,
+    aptosAddress,
+    signMessage,
+    signTransaction,
+    signAndSubmitTransaction,
+    aptosClient,
+  } = useKeyless();
+  const { updatePortfolio, createReceipt, portfolio, registerReceiptJourney } = usePortfolio();
   const { refetch: refetchRuns } = useJourneyRuns();
   const [component, setComponent] = useState<ComponentType<JourneyComponentProps> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -263,6 +278,18 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
     [refetchRuns],
   );
 
+  const journeyId = useMemo(() => (journey ? `${journey.slug}@v1` : ""), [journey]);
+  const availableLiquidity = useMemo(() => portfolio?.credits ?? 0, [portfolio]);
+
+  const createReceiptWithJourney = useCallback(async (
+    receipt: { type: string; amount: number; cause?: string; reference: string },
+  ) => {
+    await createReceipt(receipt);
+    if (journeyId) {
+      registerReceiptJourney(receipt.reference, journeyId);
+    }
+  }, [createReceipt, journeyId, registerReceiptJourney]);
+
   useEffect(() => {
     if (!isOpen || !journey) {
       resetState();
@@ -341,6 +368,7 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
     address: aptosAddress ?? "",
     signMessage,
     signTransaction,
+    signAndSubmitTransaction,
   };
 
   const capabilities = {
@@ -348,8 +376,9 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
       merge: updatePortfolio,
     },
     receipts: {
-      create: createReceipt,
+      create: createReceiptWithJourney,
     },
+    donate: {},
   };
 
   const fallback = (
@@ -403,9 +432,12 @@ export function JourneyLoader({ journey, isOpen, onClose }: JourneyLoaderProps) 
       <LoadedComponent
         isOpen={isOpen}
         onClose={onClose}
+        journeyId={journeyId}
         auth={auth}
         keyless={keylessProps}
         aptos={{ client: aptosClient }}
+        aptosClient={aptosClient}
+        availableLiquidity={availableLiquidity}
         capabilities={capabilities}
         telemetry={telemetry}
       />

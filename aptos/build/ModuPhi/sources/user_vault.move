@@ -1,5 +1,6 @@
 module dg_tenant::user_vault {
     use std::signer;
+    use std::string;
     use std::string::String;
     use std::vector;
 
@@ -7,6 +8,7 @@ module dg_tenant::user_vault {
     use aptos_framework::object;
     use aptos_framework::primary_fungible_store;
 
+    use dg_tenant::journey_audit;
     use dg_tenant::nonprofit_registry;
     use dg_tenant::receipts;
     use dg_tenant::usdc_demo;
@@ -64,6 +66,20 @@ module dg_tenant::user_vault {
             cause_id,
             amount,
             vector::empty<u8>(),
+        );
+
+        let entry = journey_audit::new_entry(
+            string::utf8(b"donation"),
+            usdc_demo::metadata_address(),
+            amount,
+            false,
+        );
+        let entries = vector::singleton(entry);
+        journey_audit::emit_output_internal(
+            @dg_tenant,
+            user_addr,
+            string::utf8(b"lend-and-donate@v1"),
+            entries,
         );
     }
 

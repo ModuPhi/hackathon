@@ -1,0 +1,170 @@
+<spec version="4.0.0" id="spec.4.0.0" owner="Wayne" title="Phase 4 — Standardized Lesson I/O + On-Chain JourneyOutput Event">
+  <summary>
+    Establish a standardized input and output model for all “Journey” lesson modules and add an on-chain JourneyOutput event for auditability. 
+    This phase finalizes the modular architecture: every live lesson receives a consistent runtime context (inputs) and emits an auditable on-chain summary (outputs).
+  </summary>
+
+  <context>
+    <system_overview>
+      The platform is an education-first DeFi application built on Aptos. 
+      Users authenticate via Google (Aptos Keyless), allocate demo liquidity, and interact with guided “Journeys” that teach DeFi mechanics (e.g., lending, donation). 
+      Journeys execute through a shared interface, calling live on-chain modules when feature flags are enabled.
+    </system_overview>
+
+    <phase_objective>
+      Introduce a canonical I/O contract for all Journey modules and record standardized on-chain summaries through a new Move module `journey_audit`. 
+      The event will contain the tenant, user, journey ID, and a vector of asset changes (entries). 
+      For Phase 4, only the live donation step will emit this event; subsequent lessons will reuse the same structure.
+    </phase_objective>
+
+    <background>
+      Earlier phases implemented login (Phase 1), dynamic manifest and loader (Phase 2), and live on-chain donation using the Fungible Asset model (Phase 3). 
+      Each Journey currently updates portfolio state locally and stores receipts in memory. 
+      This phase adds deterministic inputs and verifiable outputs so future protocols can be integrated safely.
+    </background>
+  </context>
+
+  <scope>
+    <in>
+      <item>Define and implement `journey_audit.move` module with standardized `JourneyOutput` and `Entry` structs.</item>
+      <item>Emit a `JourneyOutput` event during the live donation transaction in `user_vault.move`.</item>
+      <item>Add a `/api/verify/:txHash` endpoint that inspects Aptos transactions for valid `JourneyOutput` events.</item>
+      <item>Extend the Journey loader context to include `journeyId` and standardize injected input props.</item>
+      <item>Update client receipts UI to show “Verified on-chain” badge once `/verify` confirms a `JourneyOutput` for the matching user + journey.</item>
+    </in>
+    <out>
+      <item>No swap/lend changes; they remain mock.</item>
+      <item>No DB schema changes beyond transient verification cache.</item>
+      <item>No CMS or manifest changes.</item>
+    </out>
+  </scope>
+
+  <deliverables>
+    <move>
+      <item>New module `journey_audit.move` under `aptos/sources/` implementing:
+        <ul>
+          <li>`struct Entry { kind: String, asset_metadata: address, amount: u64, direction: bool }`</li>
+          <li>`struct JourneyOutput { tenant: address, user: address, journey_id: String, entries: vector&lt;Entry&gt;, tx_meta: String, schema_version: u16 }`</li>
+          <li>`struct JourneyOutputEvents has key { handle: event::EventHandle&lt;JourneyOutput&gt; }`</li>
+          <li>`public entry fun emit_output(tenant:&signer, user: address, journey_id: String, entries: vector&lt;Entry&gt;) acquires JourneyOutputEvents` that emits the event.</li>
+        </ul>
+      </item>
+      <item>Modify `user_vault.move` donation function to call `journey_audit::emit_output()` after successful FA transfer.
+        <ul>
+          <li>Create a single `Entry { kind: "donation", asset_metadata: USDC_METADATA, amount, direction: false }`.</li>
+          <li>Pass `journey_id = "lend-and-donate@v1"` and user’s address.</li>
+        </ul>
+      </item>
+      <item>Add a Move unit test asserting the event is emitted with correct fields (tenant, user, amount, journey_id).</item>
+    </move>
+
+    <server>
+      <item>New endpoint `GET /api/verify/:txHash`:
+        <ul>
+          <li>Calls Aptos REST `/transactions/by_hash/:txHash`.</li>
+          <li>Scans events for `journey_audit::JourneyOutput` matching { user, journey_id }.</li>
+          <li>Returns `{ verified: true|false, journey_id, entries, block_height, event_seq }`.</li>
+          <li>Caches result in memory for 5 minutes.</li>
+        </ul>
+      </item>
+    </server>
+
+    <client>
+      <item>Standardize injected props in all Journey components:
+        <ul>
+          <li>`journeyId: string`</li>
+          <li>`keyless: { address, signMessage, signTransaction }`</li>
+          <li>`aptosClient: AptosClient`</li>
+          <li>`auth: { userId, tenantId }`</li>
+          <li>`availableLiquidity: number`</li>
+          <li>`capabilities` (portfolio, receipts, donate.execute)</li>
+        </ul>
+      </item>
+      <item>After donation submission, poll `/api/verify/:txHash` every 5 s up to 30 s.</item>
+      <item>When verified = true, mark the receipt `verified: true` and show a “Verified on-chain” badge.</item>
+      <item>Add fallback message if verification fails or network down: “Awaiting confirmation – view on Explorer.”</item>
+    </client>
+
+    <docs>
+      <item>Update MOVE_DEPLOY.md with `journey_audit` publish step and verification test.</item>
+      <item>Update ENV.sample to include `VERIFIER_POLL_INTERVAL` (default = 5000 ms) and optional `APTOS_EXPLORER_API` base.</item>
+      <item>Add FEATURE_ASSESSMENT.4.0.0.md template describing validation steps for the verifier and on-chain event emission.</item>
+    </docs>
+  </deliverables>
+
+  <io_contract>
+    <journey_output_event>
+      <![CDATA[
+      event type: 0x<tenant>::journey_audit::JourneyOutput
+      fields:
+        tenant: address
+        user: address
+        journey_id: string
+        entries: [ { kind: string, asset_metadata: address, amount: u64, direction: bool } ]
+        tx_meta: string
+        schema_version: 1
+      ]]>
+    </journey_output_event>
+
+    <verify_endpoint>
+      <request>GET /api/verify/:txHash</request>
+      <response><![CDATA[
+        {
+          "verified": true,
+          "journey_id": "lend-and-donate@v1",
+          "entries": [
+            { "kind": "donation", "asset_metadata": "0x...", "amount": 1230000, "direction": false }
+          ],
+          "block_height": 1234567,
+          "event_seq": "12"
+        }
+      ]]></response>
+    </verify_endpoint>
+  </io_contract>
+
+  <implementation>
+    <move>
+      <step>Add `journey_audit.move` as described; register event handle under tenant at deploy.</step>
+      <step>In `user_vault.move` donation entry, after successful FA transfer, call `journey_audit::emit_output()`.</step>
+      <step>Re-run Move tests confirming both FA transfer and JourneyOutput emission succeed.</step>
+    </move>
+
+    <server>
+      <step>Create `server/routes/verify.ts` implementing the GET handler. Use Aptos REST to fetch tx details and parse events by `type == "0x<tenant>::journey_audit::JourneyOutput"`.</step>
+      <step>Return parsed data or `{ verified:false }` if not found.</step>
+    </server>
+
+    <client>
+      <step>Enhance `useReceipts` or equivalent hook to call `/api/verify` for receipts with txHash starting “0x”.</step>
+      <step>When verified, update local receipt store and trigger a green “Verified” badge in receipts timeline.</step>
+      <step>Propagate `journeyId` prop through JourneyLoader into every module.</step>
+    </client>
+  </implementation>
+
+  <acceptance>
+    <tests>
+      <item>Move: `donate_usdc` emits JourneyOutput with expected fields.</item>
+      <item>Server: `GET /api/verify/:txHash` returns verified:true for that txHash within 5 s of block inclusion.</item>
+      <item>Client: Receipt with matching txHash updates to show “Verified on-chain”.</item>
+      <item>No behavior regression when DONATION_LIVE=false (mock path unaffected).</item>
+    </tests>
+  </acceptance>
+
+  <non_goals>
+    <item>No swap/lend emission yet; only donation step uses JourneyOutput.</item>
+    <item>No off-chain aggregation of entries beyond single transaction verification.</item>
+    <item>No storage of verification results beyond in-memory cache.</item>
+  </non_goals>
+
+  <risks>
+    <item>Event type string mismatch between Move module and verifier parser – mitigate by exporting tenant address in addresses.json and reusing constant in server.</item>
+    <item>REST rate-limit on transaction polling – mitigate with exponential back-off or single poll loop capped at 30 s.</item>
+    <item>Keyless signing or FA decimals mismatch – reuse existing normalization helpers.</item>
+  </risks>
+
+  <handoff>
+    <next_phase_pointer>
+      Post-submission, new lessons will emit the same JourneyOutput schema (kind, asset_metadata, amount, direction) for all asset actions – swap, lend, repay – providing a uniform audit trail across the education platform.
+    </next_phase_pointer>
+  </handoff>
+</spec>

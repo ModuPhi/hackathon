@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { formatNumber } from "@/lib/portfolio-calculations";
 
 export function ReceiptsTimeline() {
-  const { receipts } = usePortfolio();
+  const { receipts, verificationResults } = usePortfolio();
+  const txHashRegex = /^0x[0-9a-f]+$/i;
 
   return (
     <Card>
@@ -26,6 +28,9 @@ export function ReceiptsTimeline() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Time
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Status
                 </th>
               </tr>
             </thead>
@@ -57,6 +62,43 @@ export function ReceiptsTimeline() {
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {receipt.createdAt.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      {(() => {
+                        const normalizedRef = receipt.reference.trim().toLowerCase();
+                        const verification = verificationResults[normalizedRef];
+                        const isTxHash = txHashRegex.test(normalizedRef);
+
+                        if (verification?.status === "verified") {
+                          return (
+                            <Badge className="bg-success text-success-foreground">
+                              Verified on-chain
+                            </Badge>
+                          );
+                        }
+
+                        if (isTxHash) {
+                          const explorerUrl = verification?.explorerUrl;
+                          return (
+                            <span className="text-xs text-muted-foreground">
+                              Awaiting confirmation — {explorerUrl ? (
+                                <a
+                                  href={explorerUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="underline"
+                                >
+                                  view on Explorer
+                                </a>
+                              ) : (
+                                "view on Explorer"
+                              )}
+                            </span>
+                          );
+                        }
+
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                      })()}
                     </td>
                   </tr>
                 ))

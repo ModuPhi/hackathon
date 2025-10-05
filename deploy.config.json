@@ -1,5 +1,5 @@
 {
-  "network": "testnet",
+  "network": "devnet",
   "tenantAddress": "0x78f69925986ee54e33b935ffff1e3ce5a6410d1a6627647b5cfd411b7161df73",
   "tenantFaucetAmount": 0,
   "nonprofits": [
@@ -29,6 +29,6 @@
     }
   ],
   "setLiveFlags": true,
-  "restUrl": "http://localhost:8080",
-  "faucetUrl": "http://localhost:8081"
+  "restUrl": "https://fullnode.devnet.aptoslabs.com",
+  "faucetUrl": "https://faucet.devnet.aptoslabs.com"
 }

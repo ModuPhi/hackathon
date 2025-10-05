@@ -44,6 +44,7 @@ type KeylessContextValue = {
   aptosClient: Aptos;
   signMessage: (message: string | Uint8Array) => Promise<string>;
   signTransaction: (transaction: AnyRawTransaction) => Promise<string>;
+  signAndSubmitTransaction: (transaction: AnyRawTransaction) => Promise<string>;
   login: () => Promise<void>;
   logout: () => void;
 };
@@ -424,6 +425,22 @@ export function KeylessProvider({ children }: { children: React.ReactNode }) {
     [aptosClient.config, session],
   );
 
+  const signAndSubmitTransaction = useCallback(
+    async (transaction: AnyRawTransaction) => {
+      if (!session) {
+        throw new Error("Signer unavailable. Please sign in.");
+      }
+
+      await session.account.checkKeylessAccountValidity(aptosClient.config);
+      const pending = await aptosClient.transaction.signAndSubmitTransaction({
+        signer: session.account,
+        transaction,
+      });
+      return pending.hash;
+    },
+    [aptosClient, session],
+  );
+
   const value: KeylessContextValue = {
     isAuthenticated: !!session,
     loading,
@@ -433,9 +450,50 @@ export function KeylessProvider({ children }: { children: React.ReactNode }) {
     aptosClient,
     signMessage,
     signTransaction,
+    signAndSubmitTransaction,
     login,
     logout,
   };
+
+  useEffect(() => {
+    if (session?.aptosAddress) {
+      // eslint-disable-next-line no-console
+      console.info(`[keyless] logged in as ${session.aptosAddress}`);
+    }
+  }, [session?.aptosAddress]);
+
+  const ensuredVaultForAddressRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const address = session?.aptosAddress;
+    if (!address) {
+      ensuredVaultForAddressRef.current = null;
+      return;
+    }
+
+    if (ensuredVaultForAddressRef.current === address) {
+      return;
+    }
+
+    ensuredVaultForAddressRef.current = address;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/chain/bootstrap-vault", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address }),
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          console.warn("Failed to bootstrap user vault", response.status, message);
+        }
+      } catch (error) {
+        console.warn("Error bootstrapping user vault", error);
+      }
+    })();
+  }, [session?.aptosAddress]);
 
   return <KeylessContext.Provider value={value}>{children}</KeylessContext.Provider>;
 }

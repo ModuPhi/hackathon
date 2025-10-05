@@ -134,6 +134,27 @@ function normalizeNodeUrls(rawUrl: string): { base: string; api: string } {
   return { base: normalizedBase, api };
 }
 
+function defaultsForNetwork(network?: string): { fullnodeBase: string; faucetUrl: string } {
+  const n = (network || "devnet").toLowerCase();
+  if (n === "devnet") {
+    return {
+      fullnodeBase: "https://fullnode.devnet.aptoslabs.com",
+      faucetUrl: "https://faucet.devnet.aptoslabs.com",
+    };
+  }
+  if (n === "testnet") {
+    return {
+      fullnodeBase: "https://fullnode.testnet.aptoslabs.com",
+      faucetUrl: "https://faucet.testnet.aptoslabs.com",
+    };
+  }
+  // local or any other
+  return {
+    fullnodeBase: "http://127.0.0.1:8080",
+    faucetUrl: "http://127.0.0.1:8081",
+  };
+}
+
 async function loadCliProfiles(): Promise<CliProfiles> {
   try {
     const raw = await readFile(aptosConfigPath, "utf-8");
@@ -331,7 +352,7 @@ async function main() {
     }
     configExists = false;
     config = {
-      network: args.network ?? "testnet",
+      network: args.network ?? "devnet",
       profile: undefined,
       tenantAddress: args.tenantAddress,
       tenantFaucetAmount: args.tenantFaucetAmount ?? 0,
@@ -342,7 +363,12 @@ async function main() {
     };
   }
 
-  if (args.network) config.network = args.network;
+  if (args.network) {
+    config.network = args.network;
+  } else {
+    // Force devnet as the default target if not explicitly overridden
+    config.network = (config.network || "devnet").toLowerCase() === "devnet" ? "devnet" : "devnet";
+  }
   if (args.restUrl) config.restUrl = args.restUrl;
   if (args.faucetUrl) config.faucetUrl = args.faucetUrl;
   if (args.tenantAddress) config.tenantAddress = args.tenantAddress;
@@ -356,7 +382,7 @@ async function main() {
   const cliProfiles = await loadCliProfiles();
   const defaultCliProfile = cliProfiles["default"];
   const profile = config.profile;
-  const network = config.network || "testnet";
+  const network = (config.network || "devnet").toLowerCase();
 
   let tenantAddress = config.tenantAddress;
   if (!tenantAddress) {
@@ -388,10 +414,14 @@ async function main() {
 
   console.log(`Using tenant address: ${tenantAddress}`);
 
+  const defaults = defaultsForNetwork(network);
   const profileRestUrl = profile ? cliProfiles[profile]?.rest_url : undefined;
   const defaultRestUrl = defaultCliProfile?.rest_url;
   const envRestUrl = process.env.APTOS_REST_URL;
-  const restUrlSource = config.restUrl || profileRestUrl || defaultRestUrl || envRestUrl || "http://127.0.0.1:8080";
+  // Force devnet defaults if targeting devnet, regardless of any old config file values
+  const restUrlSource = network === "devnet"
+    ? defaults.fullnodeBase
+    : (config.restUrl || profileRestUrl || defaultRestUrl || envRestUrl || defaults.fullnodeBase);
   const { base: cliRestUrl, api: apiRestUrl } = normalizeNodeUrls(restUrlSource);
   config.restUrl = cliRestUrl;
 
@@ -400,7 +430,9 @@ async function main() {
   const profileFaucetUrl = profile ? cliProfiles[profile]?.faucet_url : undefined;
   const defaultFaucetUrl = defaultCliProfile?.faucet_url;
   const envFaucetUrl = process.env.APTOS_FAUCET_URL;
-  const faucetUrl = config.faucetUrl || profileFaucetUrl || defaultFaucetUrl || envFaucetUrl || "http://127.0.0.1:8081";
+  const faucetUrl = network === "devnet"
+    ? defaults.faucetUrl
+    : (config.faucetUrl || profileFaucetUrl || defaultFaucetUrl || envFaucetUrl || defaults.faucetUrl);
   config.faucetUrl = faucetUrl;
 
   console.log(`Using Aptos faucet URL: ${faucetUrl}`);
@@ -461,6 +493,11 @@ async function main() {
     await aptosRun(`${tenantAddress}::receipts::init`, [], aptosOpts);
   }
 
+  const journeyAuditInitialized = await aptosView(`${tenantAddress}::journey_audit::is_initialized`, [], aptosOpts);
+  if (!journeyAuditInitialized?.[0]) {
+    await aptosRun(`${tenantAddress}::journey_audit::init`, [], aptosOpts);
+  }
+
   if (!config.nonprofits || config.nonprofits.length === 0) {
     const inferred: { slug: string; payout: string }[] = [];
     for (const [name, profileEntry] of Object.entries(cliProfiles)) {
@@ -512,6 +549,8 @@ async function main() {
   const envUpdates: Record<string, string> = {
     TENANT_ADDRESS: tenantAddress,
     USDC_METADATA_ADDRESS: usdcMetadataAddress,
+    APTOS_NETWORK: network,
+    APTOS_REST_URL: apiRestUrl,
   };
 
   const setLive = args.setLiveFlags ?? config.setLiveFlags ?? false;
@@ -522,9 +561,12 @@ async function main() {
 
   await updateEnvFile(envPath, envUpdates);
 
-  if (setLive) {
-    await updateEnvFile(envPath, { VITE_DONATION_LIVE: "true" });
-  }
+  const clientEnvUpdates: Record<string, string> = {
+    VITE_APTOS_NETWORK: network,
+    VITE_APTOS_REST_URL: apiRestUrl,
+  };
+  if (setLive) clientEnvUpdates.VITE_DONATION_LIVE = "true";
+  await updateEnvFile(envPath, clientEnvUpdates);
 
   if (!config.profile) {
     delete config.profile;
